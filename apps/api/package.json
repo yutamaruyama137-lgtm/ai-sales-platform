@@ -1,0 +1,30 @@
+{
+  "name": "@ai-sales/api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "hono": "^4.3.11",
+    "@hono/node-server": "^1.11.4",
+    "openai": "^4.52.0",
+    "@supabase/supabase-js": "^2.43.5",
+    "nodemailer": "^6.9.13",
+    "dotenv": "^16.4.5",
+    "@ai-sales/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/nodemailer": "^6.4.15",
+    "@types/node": "^20.14.9",
+    "tsx": "^4.16.0",
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0"
+  }
+}
