@@ -38,8 +38,8 @@ export function ClientsPage({ onSelectClient }: ClientsPageProps): React.ReactEl
     <div style={s.container}>
       <div style={s.header}>
         <div>
-          <h1 style={s.title}>AI Sales Platform</h1>
-          <p style={s.subtitle}>クライアント（ウィジェット設置先）を管理します</p>
+          <h1 style={s.title}>クライアント一覧</h1>
+          <p style={s.subtitle}>ウィジェット設置先のクライアントを管理します</p>
         </div>
         <button style={s.createBtn} onClick={() => setShowCreate(true)}>
           + 新規クライアント
@@ -119,39 +119,51 @@ export function ClientsPage({ onSelectClient }: ClientsPageProps): React.ReactEl
 }
 
 const s: Record<string, React.CSSProperties> = {
-  container: { maxWidth: '1100px', margin: '0 auto', padding: '40px 24px' },
-  header: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '32px' },
-  title: { margin: '0 0 4px', fontSize: '24px', fontWeight: 700, color: '#0f172a' },
-  subtitle: { margin: 0, fontSize: '14px', color: '#64748b' },
+  container: { maxWidth: '1100px', margin: '0 auto', padding: '48px 24px' },
+  header: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '40px' },
+  title: { margin: '0 0 6px', fontSize: '26px', fontWeight: 700, color: 'rgba(0,0,0,0.95)', letterSpacing: '-0.625px' },
+  subtitle: { margin: 0, fontSize: '15px', color: '#615d59', fontWeight: 400 },
   createBtn: {
-    padding: '10px 20px', backgroundColor: '#2563eb', color: '#fff',
-    border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600,
-    cursor: 'pointer', whiteSpace: 'nowrap',
+    padding: '8px 16px', backgroundColor: '#0075de', color: '#fff',
+    border: '1px solid transparent', borderRadius: '4px', fontSize: '15px', fontWeight: 600,
+    cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit',
   },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' },
   card: {
-    background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px',
-    padding: '20px', cursor: 'pointer', textAlign: 'left', transition: 'box-shadow 0.2s',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.07)',
+    background: '#fff',
+    border: '1px solid rgba(0,0,0,0.1)',
+    borderRadius: '12px',
+    padding: '20px',
+    cursor: 'pointer',
+    textAlign: 'left',
+    boxShadow: 'rgba(0,0,0,0.04) 0px 4px 18px, rgba(0,0,0,0.027) 0px 2px 8px, rgba(0,0,0,0.02) 0px 0.8px 3px',
+    transition: 'box-shadow 0.15s ease',
+    fontFamily: 'inherit',
   },
   cardHeader: { display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '16px' },
   cardIcon: {
-    width: '44px', height: '44px', borderRadius: '10px', backgroundColor: '#eff6ff',
-    color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    width: '44px', height: '44px', borderRadius: '10px', backgroundColor: '#f2f9ff',
+    color: '#0075de', display: 'flex', alignItems: 'center', justifyContent: 'center',
     fontSize: '20px', fontWeight: 700, flexShrink: 0,
   },
-  cardName: { fontSize: '16px', fontWeight: 600, color: '#0f172a', marginBottom: '2px' },
-  cardDomain: { fontSize: '13px', color: '#94a3b8' },
+  cardName: { fontSize: '16px', fontWeight: 700, color: 'rgba(0,0,0,0.95)', marginBottom: '2px', letterSpacing: '-0.25px' },
+  cardDomain: { fontSize: '13px', color: '#a39e98', fontWeight: 500 },
   cardFooter: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  cardId: { fontSize: '11px', color: '#cbd5e1', fontFamily: 'monospace' },
-  cardArrow: { fontSize: '16px', color: '#94a3b8' },
-  skeleton: { height: '120px', background: '#f1f5f9', borderRadius: '12px', marginBottom: '12px' },
+  cardId: { fontSize: '11px', color: '#a39e98', fontFamily: 'monospace', letterSpacing: '0.125px' },
+  cardArrow: { fontSize: '14px', color: '#a39e98' },
+  skeleton: {
+    height: '120px',
+    background: 'linear-gradient(90deg, #f6f5f4 25%, #eeedec 50%, #f6f5f4 75%)',
+    borderRadius: '12px',
+    marginBottom: '12px',
+    border: '1px solid rgba(0,0,0,0.06)',
+  },
   loadingArea: {},
-  emptyState: { textAlign: 'center', padding: '80px 24px' },
-  emptyText: { fontSize: '18px', color: '#475569', margin: '0 0 8px' },
-  emptySubText: { fontSize: '14px', color: '#94a3b8', margin: 0 },
+  emptyState: { textAlign: 'center', padding: '96px 24px' },
+  emptyText: { fontSize: '18px', color: '#31302e', margin: '0 0 8px', fontWeight: 600 },
+  emptySubText: { fontSize: '14px', color: '#a39e98', margin: 0 },
   errorBox: {
-    padding: '12px 16px', background: '#fef2f2', border: '1px solid #fca5a5',
+    padding: '12px 16px', background: '#fef2f2', border: '1px solid rgba(220,38,38,0.2)',
     borderRadius: '8px', color: '#dc2626', fontSize: '14px', marginBottom: '24px',
   },
   modal: {
@@ -159,24 +171,32 @@ const s: Record<string, React.CSSProperties> = {
     display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
   },
   modalBox: {
-    background: '#fff', borderRadius: '12px', padding: '28px 32px',
-    width: '420px', maxWidth: '90vw', boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+    background: '#fff',
+    border: '1px solid rgba(0,0,0,0.1)',
+    borderRadius: '12px',
+    padding: '28px 32px',
+    width: '420px',
+    maxWidth: '90vw',
+    boxShadow: 'rgba(0,0,0,0.01) 0px 1px 3px, rgba(0,0,0,0.02) 0px 3px 7px, rgba(0,0,0,0.02) 0px 7px 15px, rgba(0,0,0,0.04) 0px 14px 28px, rgba(0,0,0,0.05) 0px 23px 52px',
   },
-  modalTitle: { margin: '0 0 20px', fontSize: '18px', fontWeight: 700, color: '#0f172a' },
-  label: { display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '14px', color: '#374151', marginBottom: '16px' },
-  required: { color: '#dc2626' },
+  modalTitle: { margin: '0 0 22px', fontSize: '22px', fontWeight: 700, color: 'rgba(0,0,0,0.95)', letterSpacing: '-0.25px' },
+  label: { display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '14px', color: '#31302e', marginBottom: '16px', fontWeight: 500 },
+  required: { color: '#dc2626', display: 'inline' },
   input: {
-    padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '6px',
-    fontSize: '14px', outline: 'none',
+    padding: '6px 10px', border: '1px solid #dddddd', borderRadius: '4px',
+    fontSize: '15px', outline: 'none', color: 'rgba(0,0,0,0.9)',
+    fontFamily: 'inherit', width: '100%', boxSizing: 'border-box',
   },
   errorText: { color: '#dc2626', fontSize: '13px', margin: '0 0 12px' },
   modalActions: { display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '8px' },
   cancelBtn: {
-    padding: '9px 18px', background: '#f1f5f9', border: '1px solid #e2e8f0',
-    borderRadius: '6px', fontSize: '14px', cursor: 'pointer', color: '#475569',
+    padding: '8px 16px', background: 'rgba(0,0,0,0.05)', border: '1px solid transparent',
+    borderRadius: '4px', fontSize: '14px', cursor: 'pointer', color: 'rgba(0,0,0,0.7)',
+    fontWeight: 500, fontFamily: 'inherit',
   },
   submitBtn: {
-    padding: '9px 18px', background: '#2563eb', color: '#fff',
-    border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+    padding: '8px 16px', background: '#0075de', color: '#fff',
+    border: '1px solid transparent', borderRadius: '4px', fontSize: '14px', fontWeight: 600,
+    cursor: 'pointer', fontFamily: 'inherit',
   },
 };

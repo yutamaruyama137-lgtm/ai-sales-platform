@@ -29,6 +29,7 @@ export default function App(): React.ReactElement {
       {/* グローバルナビゲーション */}
       <nav style={s.nav}>
         <button style={s.navBrand} onClick={() => setView('clients')}>
+          <span style={s.navLogo}>S</span>
           AI Sales Platform
         </button>
         <div style={s.navRight}>
@@ -60,28 +61,38 @@ export default function App(): React.ReactElement {
 }
 
 const s: Record<string, React.CSSProperties> = {
-  root: { minHeight: '100vh', backgroundColor: '#f8fafc' },
+  root: { minHeight: '100vh', backgroundColor: '#f6f5f4' },
   loadingContainer: {
     display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh',
+    backgroundColor: '#f6f5f4',
   },
   spinner: {
-    width: '36px', height: '36px', border: '3px solid #e5e7eb',
-    borderTop: '3px solid #2563eb', borderRadius: '50%',
+    width: '32px', height: '32px', border: '2px solid rgba(0,0,0,0.1)',
+    borderTop: '2px solid #0075de', borderRadius: '50%',
     animation: 'spin 0.8s linear infinite',
   },
   nav: {
-    backgroundColor: '#0f172a', color: '#fff', padding: '0 24px',
+    backgroundColor: '#ffffff',
+    borderBottom: '1px solid rgba(0,0,0,0.1)',
+    padding: '0 24px',
     display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '52px',
-    boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
   },
   navBrand: {
-    background: 'none', border: 'none', color: '#fff', fontWeight: 700,
-    fontSize: '16px', cursor: 'pointer', letterSpacing: '-0.3px',
+    background: 'none', border: 'none', color: 'rgba(0,0,0,0.95)', fontWeight: 700,
+    fontSize: '15px', cursor: 'pointer', letterSpacing: '-0.3px',
+    display: 'flex', alignItems: 'center', gap: '8px', padding: 0,
+    fontFamily: 'inherit',
+  },
+  navLogo: {
+    width: '28px', height: '28px', backgroundColor: '#0075de', color: '#fff',
+    borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontSize: '13px', fontWeight: 700, flexShrink: 0,
   },
   navRight: { display: 'flex', alignItems: 'center', gap: '16px' },
-  navEmail: { fontSize: '13px', color: '#94a3b8' },
+  navEmail: { fontSize: '14px', color: '#615d59', fontWeight: 500 },
   logoutBtn: {
-    padding: '5px 12px', background: 'transparent', border: '1px solid #475569',
-    borderRadius: '5px', color: '#94a3b8', fontSize: '12px', cursor: 'pointer',
+    padding: '6px 14px', background: 'rgba(0,0,0,0.05)', border: '1px solid transparent',
+    borderRadius: '4px', color: 'rgba(0,0,0,0.7)', fontSize: '14px', cursor: 'pointer',
+    fontWeight: 500, fontFamily: 'inherit',
   },
 };

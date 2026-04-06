@@ -1,22 +1,34 @@
 import React, { useState, FormEvent } from 'react';
 import { useAuth } from '../hooks/useAuth';
 
+type Mode = 'login' | 'signup';
+
 export function LoginPage(): React.ReactElement {
-  const { signIn } = useAuth();
+  const { signIn, signUp } = useAuth();
+  const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
+    setSuccess(null);
     setSubmitting(true);
 
-    const result = await signIn(email, password);
-
-    if (result.error) {
-      setError(result.error);
+    if (mode === 'login') {
+      const result = await signIn(email, password);
+      if (result.error) setError(result.error);
+    } else {
+      const result = await signUp(email, password);
+      if (result.error) {
+        setError(result.error);
+      } else {
+        setSuccess('アカウントを作成しました。そのままログインできます。');
+        setMode('login');
+      }
     }
 
     setSubmitting(false);
@@ -25,14 +37,16 @@ export function LoginPage(): React.ReactElement {
   return (
     <div style={styles.container}>
       <div style={styles.card}>
-        <h1 style={styles.title}>AI Sales Dashboard</h1>
-        <p style={styles.subtitle}>管理者ログイン</p>
+        {/* ロゴ */}
+        <div style={styles.logoArea}>
+          <div style={styles.logoIcon}>S</div>
+          <h1 style={styles.title}>AI Sales Platform</h1>
+        </div>
+        <p style={styles.subtitle}>{mode === 'login' ? '管理者ログイン' : 'アカウント作成'}</p>
 
         <form onSubmit={(e) => void handleSubmit(e)} style={styles.form}>
           <div style={styles.field}>
-            <label htmlFor="email" style={styles.label}>
-              メールアドレス
-            </label>
+            <label htmlFor="email" style={styles.label}>メールアドレス</label>
             <input
               id="email"
               type="email"
@@ -46,38 +60,54 @@ export function LoginPage(): React.ReactElement {
           </div>
 
           <div style={styles.field}>
-            <label htmlFor="password" style={styles.label}>
-              パスワード
-            </label>
+            <label htmlFor="password" style={styles.label}>パスワード</label>
             <input
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              autoComplete="current-password"
+              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
               style={styles.input}
               placeholder="••••••••"
             />
           </div>
 
           {error && (
-            <div style={styles.errorBox} role="alert">
-              {error}
-            </div>
+            <div style={styles.errorBox} role="alert">{error}</div>
+          )}
+          {success && (
+            <div style={styles.successBox} role="status">{success}</div>
           )}
 
           <button
             type="submit"
             disabled={submitting}
-            style={{
-              ...styles.button,
-              ...(submitting ? styles.buttonDisabled : {}),
-            }}
+            style={{ ...styles.button, ...(submitting ? styles.buttonDisabled : {}) }}
           >
-            {submitting ? 'ログイン中...' : 'ログイン'}
+            {submitting
+              ? (mode === 'login' ? 'ログイン中...' : '作成中...')
+              : (mode === 'login' ? 'ログイン' : 'アカウント作成')}
           </button>
         </form>
+
+        <div style={styles.switchArea}>
+          {mode === 'login' ? (
+            <>
+              <span style={styles.switchText}>アカウントをお持ちでない方は</span>
+              <button style={styles.switchBtn} onClick={() => { setMode('signup'); setError(null); setSuccess(null); }}>
+                新規登録
+              </button>
+            </>
+          ) : (
+            <>
+              <span style={styles.switchText}>すでにアカウントをお持ちの方は</span>
+              <button style={styles.switchBtn} onClick={() => { setMode('login'); setError(null); setSuccess(null); }}>
+                ログイン
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -85,79 +115,53 @@ export function LoginPage(): React.ReactElement {
 
 const styles: Record<string, React.CSSProperties> = {
   container: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '100vh',
-    backgroundColor: '#f0f2f5',
-    padding: '24px',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    minHeight: '100vh', backgroundColor: '#f6f5f4', padding: '24px',
   },
   card: {
     backgroundColor: '#ffffff',
-    borderRadius: '8px',
-    boxShadow: '0 2px 16px rgba(0,0,0,0.1)',
-    padding: '40px',
+    border: '1px solid rgba(0,0,0,0.1)',
+    borderRadius: '12px',
+    boxShadow: 'rgba(0,0,0,0.04) 0px 4px 18px, rgba(0,0,0,0.027) 0px 2px 8px, rgba(0,0,0,0.02) 0px 0.8px 3px',
+    padding: '40px 36px',
     width: '100%',
     maxWidth: '400px',
   },
-  title: {
-    margin: '0 0 4px',
-    fontSize: '24px',
-    fontWeight: 700,
-    color: '#1a1a1a',
-    textAlign: 'center',
+  logoArea: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '6px' },
+  logoIcon: {
+    width: '36px', height: '36px', backgroundColor: '#0075de', color: '#fff',
+    borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontSize: '16px', fontWeight: 700, flexShrink: 0,
   },
-  subtitle: {
-    margin: '0 0 32px',
-    fontSize: '14px',
-    color: '#666',
-    textAlign: 'center',
-  },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '16px',
-  },
-  field: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '6px',
-  },
-  label: {
-    fontSize: '13px',
-    fontWeight: 500,
-    color: '#333',
-  },
+  title: { margin: 0, fontSize: '22px', fontWeight: 700, color: 'rgba(0,0,0,0.95)', letterSpacing: '-0.25px' },
+  subtitle: { margin: '0 0 32px', fontSize: '14px', color: '#615d59', textAlign: 'center', fontWeight: 500 },
+  form: { display: 'flex', flexDirection: 'column', gap: '16px' },
+  field: { display: 'flex', flexDirection: 'column', gap: '6px' },
+  label: { fontSize: '14px', fontWeight: 500, color: '#31302e' },
   input: {
-    padding: '10px 12px',
-    border: '1px solid #d0d0d0',
-    borderRadius: '6px',
-    fontSize: '14px',
-    outline: 'none',
-    transition: 'border-color 0.2s',
+    padding: '8px 10px', border: '1px solid #dddddd', borderRadius: '4px',
+    fontSize: '15px', outline: 'none', color: 'rgba(0,0,0,0.9)',
+    fontFamily: 'inherit', lineHeight: 1.5,
   },
   errorBox: {
-    padding: '10px 12px',
-    backgroundColor: '#fef2f2',
-    border: '1px solid #fca5a5',
-    borderRadius: '6px',
-    color: '#dc2626',
-    fontSize: '13px',
+    padding: '10px 12px', backgroundColor: '#fef2f2', border: '1px solid rgba(220,38,38,0.2)',
+    borderRadius: '6px', color: '#dc2626', fontSize: '14px',
+  },
+  successBox: {
+    padding: '10px 12px', backgroundColor: '#f0fdf4', border: '1px solid rgba(5,150,105,0.2)',
+    borderRadius: '6px', color: '#059669', fontSize: '14px',
   },
   button: {
-    padding: '12px',
-    backgroundColor: '#2563eb',
-    color: '#ffffff',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '14px',
-    fontWeight: 600,
-    cursor: 'pointer',
-    marginTop: '8px',
-    transition: 'background-color 0.2s',
+    padding: '8px 16px', backgroundColor: '#0075de', color: '#ffffff',
+    border: '1px solid transparent',
+    borderRadius: '4px', fontSize: '15px', fontWeight: 600, cursor: 'pointer',
+    marginTop: '8px', fontFamily: 'inherit',
   },
-  buttonDisabled: {
-    backgroundColor: '#93c5fd',
-    cursor: 'not-allowed',
+  buttonDisabled: { backgroundColor: '#62aef0', cursor: 'not-allowed' },
+  switchArea: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '28px' },
+  switchText: { fontSize: '14px', color: '#615d59' },
+  switchBtn: {
+    background: 'none', border: 'none', color: '#0075de', fontSize: '14px',
+    fontWeight: 600, cursor: 'pointer', padding: 0, fontFamily: 'inherit',
   },
 };

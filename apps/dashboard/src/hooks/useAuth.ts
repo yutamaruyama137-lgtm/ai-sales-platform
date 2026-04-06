@@ -7,6 +7,7 @@ interface UseAuthReturn {
   session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+  signUp: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -44,6 +45,20 @@ export function useAuth(): UseAuthReturn {
     }
   };
 
+  const signUp = async (email: string, password: string): Promise<{ error: string | null }> => {
+    try {
+      const { error } = await supabase.auth.signUp({ email, password });
+      if (error) {
+        logger.warn('Sign up failed', error.message);
+        return { error: error.message };
+      }
+      return { error: null };
+    } catch (err) {
+      logger.error('Unexpected sign up error', err);
+      return { error: 'アカウント作成に失敗しました' };
+    }
+  };
+
   const signOut = async (): Promise<void> => {
     try {
       await supabase.auth.signOut();
@@ -52,5 +67,5 @@ export function useAuth(): UseAuthReturn {
     }
   };
 
-  return { session, loading, signIn, signOut };
+  return { session, loading, signIn, signUp, signOut };
 }
