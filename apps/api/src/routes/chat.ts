@@ -133,12 +133,49 @@ chat.post('/', async (c) => {
       { role: 'user' as const, content: message },
     ];
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: openaiMessages,
-    });
+    // 4. OpenAI 呼び出し（最大2回リトライ）
+    let rawContent = '';
+    let lastAiError: unknown = null;
 
-    const rawContent = completion.choices[0]?.message?.content ?? '';
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        // attempt 2以降はRAGコンテキストなし（軽量フォールバック）
+        const fallbackPrompt = attempt > 1
+          ? baseSystemPrompt + flowInstruction
+          : systemPrompt;
+
+        const msgs = attempt > 1
+          ? [
+              { role: 'system' as const, content: fallbackPrompt },
+              ...existingMessages.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+              { role: 'user' as const, content: message },
+            ]
+          : [
+              { role: 'system' as const, content: systemPrompt },
+              ...existingMessages.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+              { role: 'user' as const, content: message },
+            ];
+
+        const completion = await openai.chat.completions.create(
+          { model: 'gpt-4o-mini', messages: msgs },
+          { timeout: 20000 }
+        );
+
+        rawContent = completion.choices[0]?.message?.content ?? '';
+        lastAiError = null;
+        if (attempt > 1) logger.info('AI retry succeeded', { attempt, client_id });
+        break;
+      } catch (aiErr) {
+        lastAiError = aiErr;
+        logger.warn(`AI attempt ${attempt} failed`, aiErr);
+        if (attempt < 3) await new Promise((r) => setTimeout(r, attempt * 500));
+      }
+    }
+
+    if (lastAiError || !rawContent) {
+      logger.error('All AI attempts failed', lastAiError);
+      return c.json<ApiError>({ error: 'AI_UNAVAILABLE' }, 503);
+    }
 
     // [SHOW_CTA] マーカーを検出・除去
     const CTA_MARKER = '[SHOW_CTA]';

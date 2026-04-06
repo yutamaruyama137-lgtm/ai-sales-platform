@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import type { Message, ClientConfig, CtaConfig } from '@ai-sales/types';
 import { chatApi, fetchClientConfig } from '../utils/api';
 import { logger } from '../utils/logger';
@@ -16,6 +16,7 @@ interface UseChatReturn {
   showCta: boolean;
   ctaConfig: CtaConfig | null;
   sendMessage: (text: string) => Promise<void>;
+  retrySend: () => void;
 }
 
 export function useChat({ clientId, apiUrl }: UseChatOptions): UseChatReturn {
@@ -26,6 +27,7 @@ export function useChat({ clientId, apiUrl }: UseChatOptions): UseChatReturn {
   const [config, setConfig] = useState<ClientConfig | null>(null);
   const [showCta, setShowCta] = useState(false);
   const [ctaConfig, setCtaConfig] = useState<CtaConfig | null>(null);
+  const lastMessageRef = useRef<string>('');
 
   // クライアント設定を初期取得（ウェルカムメッセージ・カラー等）
   useEffect(() => {
@@ -38,6 +40,8 @@ export function useChat({ clientId, apiUrl }: UseChatOptions): UseChatReturn {
   const sendMessage = useCallback(
     async (text: string): Promise<void> => {
       if (!text.trim()) return;
+
+      lastMessageRef.current = text.trim();
 
       const userMessage: Message = {
         role: 'user',
@@ -84,5 +88,14 @@ export function useChat({ clientId, apiUrl }: UseChatOptions): UseChatReturn {
     [clientId, apiUrl, conversationId]
   );
 
-  return { messages, isLoading, error, config, showCta, ctaConfig, sendMessage };
+  const retrySend = useCallback(() => {
+    if (lastMessageRef.current && !isLoading) {
+      // 直前のユーザーメッセージをメッセージリストから取り除いてから再送
+      setMessages((prev) => prev.slice(0, -1));
+      setError(null);
+      void sendMessage(lastMessageRef.current);
+    }
+  }, [isLoading, sendMessage]);
+
+  return { messages, isLoading, error, config, showCta, ctaConfig, sendMessage, retrySend };
 }
