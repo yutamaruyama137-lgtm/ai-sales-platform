@@ -56,6 +56,31 @@ export function chunkText(text: string, chunkSize = 1500, overlap = 200): string
 }
 
 /**
+ * テキストファイルのバイト列を適切な文字コードでデコードする
+ * UTF-8を優先し、失敗時に日本語でよく使われる文字コードへフォールバックする
+ */
+export function decodeTextBuffer(buffer: Buffer): string {
+  const encodings = ['utf-8', 'shift_jis', 'euc-jp', 'iso-2022-jp'] as const;
+
+  for (const encoding of encodings) {
+    try {
+      const decoder = new TextDecoder(encoding, { fatal: true });
+      const decoded = decoder.decode(buffer);
+      // 文字化け時に出やすい置換文字が多い結果は避ける
+      const replacementCount = (decoded.match(/\uFFFD/g) ?? []).length;
+      if (replacementCount <= Math.max(1, Math.floor(decoded.length * 0.01))) {
+        return decoded;
+      }
+    } catch {
+      // 次の文字コードで再試行
+    }
+  }
+
+  logger.warn('Falling back to UTF-8 decode with replacement');
+  return buffer.toString('utf-8');
+}
+
+/**
  * PDFバッファからテキストを抽出する（pdf-parseが利用可能な場合）
  */
 export async function extractTextFromPdf(buffer: Buffer): Promise<string> {
