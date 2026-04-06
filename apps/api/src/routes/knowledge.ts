@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import type { ApiError, KnowledgeCreateRequest, KnowledgeResponse } from '@ai-sales/types';
 import { supabase } from '../lib/supabase.js';
 import { logger } from '../lib/logger.js';
-import { createEmbedding, chunkText, extractTextFromPdf } from '../lib/embed.js';
+import { createEmbedding, chunkText, decodeTextBuffer, extractTextFromPdf } from '../lib/embed.js';
 
 const knowledge = new Hono();
 
@@ -128,7 +128,8 @@ knowledge.post('/upload', async (c) => {
       const buffer = Buffer.from(await file.arrayBuffer());
       rawText = await extractTextFromPdf(buffer);
     } else {
-      rawText = await file.text();
+      const buffer = Buffer.from(await file.arrayBuffer());
+      rawText = decodeTextBuffer(buffer);
     }
 
     if (!rawText.trim()) {
@@ -179,6 +180,94 @@ knowledge.post('/upload', async (c) => {
   } catch (err) {
     logger.error('Knowledge upload error', err);
     return c.json<ApiError>({ error: 'Internal server error' }, 500);
+  }
+});
+
+// POST /api/knowledge/import/url — URLからコンテンツを取得してRAGに追加
+knowledge.post('/import/url', async (c) => {
+  let body: { client_id: string; url: string; title?: string };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json<ApiError>({ error: 'Invalid JSON body' }, 400);
+  }
+
+  const { client_id, url, title } = body;
+  if (!client_id || !url) {
+    return c.json<ApiError>({ error: 'client_id and url are required' }, 400);
+  }
+
+  try {
+    // URLからコンテンツを取得
+    const response = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; AI-Sales-Bot/1.0)' },
+      signal: AbortSignal.timeout(10000),
+    });
+
+    if (!response.ok) {
+      return c.json<ApiError>({ error: `Failed to fetch URL: ${response.status}` }, 400);
+    }
+
+    const contentType = response.headers.get('content-type') ?? '';
+    let rawText = '';
+
+    if (contentType.includes('text/html')) {
+      // HTML → テキスト変換（基本的なタグ除去）
+      const html = await response.text();
+      rawText = html
+        .replace(/<script[\s\S]*?<\/script>/gi, '')
+        .replace(/<style[\s\S]*?<\/style>/gi, '')
+        .replace(/<nav[\s\S]*?<\/nav>/gi, '')
+        .replace(/<header[\s\S]*?<\/header>/gi, '')
+        .replace(/<footer[\s\S]*?<\/footer>/gi, '')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/\s{3,}/g, '\n\n')
+        .trim();
+    } else {
+      rawText = await response.text();
+    }
+
+    if (!rawText.trim() || rawText.length < 50) {
+      return c.json<ApiError>({ error: 'Could not extract meaningful content from URL' }, 400);
+    }
+
+    // チャンク分割 & ベクトル化
+    const chunks = chunkText(rawText);
+    const pageTitle = title || new URL(url).hostname;
+    const insertedIds: string[] = [];
+
+    for (let i = 0; i < chunks.length; i++) {
+      const chunkTitle = chunks.length === 1 ? pageTitle : `${pageTitle} (${i + 1}/${chunks.length})`;
+      try {
+        const embedding = await createEmbedding(chunks[i]);
+        const { data, error } = await supabase
+          .from('knowledge_entries')
+          .insert({
+            client_id,
+            title: chunkTitle,
+            content: chunks[i],
+            embedding,
+            source_type: 'file',
+            source_name: url,
+          })
+          .select('id')
+          .single();
+
+        if (!error && data) insertedIds.push(data.id as string);
+      } catch (embErr) {
+        logger.error(`Embedding failed for chunk ${i + 1}`, embErr);
+      }
+    }
+
+    logger.info('URL import complete', { url, inserted: insertedIds.length, client_id });
+    return c.json({ success: true, url, chunks_created: insertedIds.length }, 201);
+  } catch (err) {
+    logger.error('URL import error', err);
+    return c.json<ApiError>({ error: 'Failed to import from URL' }, 500);
   }
 });
 

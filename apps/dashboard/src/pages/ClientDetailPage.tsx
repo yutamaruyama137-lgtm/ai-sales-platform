@@ -93,13 +93,17 @@ function LeadsTab({ clientId, onViewConversation }: { clientId: string; onViewCo
 
 // ────────────────── ナレッジタブ ──────────────────
 function KnowledgeTab({ clientId }: { clientId: string }) {
-  const { entries, loading, error, addEntry, deleteEntry, uploadFile } = useKnowledge(clientId);
+  const { entries, loading, error, addEntry, deleteEntry, uploadFile, importFromUrl } = useKnowledge(clientId);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [addError, setAddError] = useState('');
   const [adding, setAdding] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadMsg, setUploadMsg] = useState('');
+  const [importUrl, setImportUrl] = useState('');
+  const [importTitle, setImportTitle] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [importMsg, setImportMsg] = useState('');
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleAdd = async () => {
@@ -114,6 +118,24 @@ function KnowledgeTab({ clientId }: { clientId: string }) {
       setAddError(err instanceof Error ? err.message : '追加に失敗しました');
     } finally {
       setAdding(false);
+    }
+  };
+
+  const handleImportUrl = async () => {
+    if (!importUrl.trim()) return;
+    setImporting(true);
+    setImportMsg('');
+    try {
+      const result = await importFromUrl(importUrl.trim(), importTitle.trim() || undefined);
+      if (result) {
+        setImportMsg(`インポート完了: ${result.chunksCreated} チャンクをRAGに登録しました`);
+        setImportUrl('');
+        setImportTitle('');
+      }
+    } catch (err) {
+      setImportMsg(err instanceof Error ? err.message : 'インポート失敗');
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -160,6 +182,46 @@ function KnowledgeTab({ clientId }: { clientId: string }) {
         >
           {adding ? 'エンベディング生成中...' : '追加'}
         </button>
+      </div>
+
+      {/* URLインポート */}
+      <div style={s.card}>
+        <h3 style={s.cardTitle}>URLからインポート（RAG）</h3>
+        <p style={s.helpText}>
+          WebサイトのURLを指定すると、ページの内容を自動取得してRAGに登録します。
+          <br />Notionの<strong>公開ページ</strong>・会社サイト・ブログ記事などに対応しています。
+        </p>
+        <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <input
+            style={s.input}
+            placeholder="タイトル（省略時はドメイン名）"
+            value={importTitle}
+            onChange={(e) => setImportTitle(e.target.value)}
+          />
+          <input
+            style={s.input}
+            placeholder="https://example.com/about"
+            value={importUrl}
+            onChange={(e) => setImportUrl(e.target.value)}
+            type="url"
+          />
+        </div>
+        <button
+          style={{ ...s.primaryBtn, marginTop: '10px', opacity: importing ? 0.6 : 1 }}
+          onClick={() => void handleImportUrl()}
+          disabled={importing || !importUrl.trim()}
+        >
+          {importing ? '取得中...' : 'インポート'}
+        </button>
+        {importMsg && (
+          <p style={{ ...s.infoText, color: importMsg.includes('失敗') || importMsg.includes('エラー') ? '#dc2626' : '#059669', marginTop: '8px' }}>
+            {importMsg}
+          </p>
+        )}
+        <div style={{ marginTop: '12px', padding: '10px 14px', background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '6px', fontSize: '12px', color: '#92400e' }}>
+          💡 <strong>Notionを使う場合:</strong> Notionページを「公開」設定にしてURLをコピーしてください。
+          プライベートページはNotionのAPIトークン連携が必要です（別途設定）。
+        </div>
       </div>
 
       {/* ファイルアップロード */}

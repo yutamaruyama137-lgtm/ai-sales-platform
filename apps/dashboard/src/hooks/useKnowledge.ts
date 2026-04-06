@@ -11,6 +11,7 @@ interface UseKnowledgeReturn {
   addEntry: (title: string, content: string) => Promise<boolean>;
   deleteEntry: (id: string) => Promise<boolean>;
   uploadFile: (file: File) => Promise<{ chunksCreated: number } | null>;
+  importFromUrl: (url: string, title?: string) => Promise<{ chunksCreated: number } | null>;
   refetch: () => void;
 }
 
@@ -106,5 +107,28 @@ export function useKnowledge(clientId: string): UseKnowledgeReturn {
     [clientId, fetchEntries]
   );
 
-  return { entries, loading, error, addEntry, deleteEntry, uploadFile, refetch: fetchEntries };
+  const importFromUrl = useCallback(
+    async (url: string, title?: string): Promise<{ chunksCreated: number } | null> => {
+      try {
+        const res = await fetch(`${API_URL}/api/knowledge/import/url`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ client_id: clientId, url, title }),
+        });
+        if (!res.ok) {
+          const err = (await res.json()) as { error?: string };
+          throw new Error(err.error || 'URLインポートに失敗しました');
+        }
+        const data = (await res.json()) as { chunks_created: number };
+        await fetchEntries();
+        return { chunksCreated: data.chunks_created };
+      } catch (err) {
+        logger.error('importFromUrl error', err);
+        throw err;
+      }
+    },
+    [clientId, fetchEntries]
+  );
+
+  return { entries, loading, error, addEntry, deleteEntry, uploadFile, importFromUrl, refetch: fetchEntries };
 }
