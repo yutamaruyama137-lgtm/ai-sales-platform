@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import type { ChatRequest, ChatResponse, ApiError, Message } from '@ai-sales/types';
+import type { ChatRequest, ChatResponse, ApiError, Message, FlowConfig } from '@ai-sales/types';
 import { supabase } from '../lib/supabase.js';
 import { openai } from '../lib/openai.js';
 import { logger } from '../lib/logger.js';
@@ -45,8 +45,10 @@ chat.post('/', async (c) => {
       systemPrompt?: string;
       primaryColor?: string;
       headerTitle?: string;
+      flowConfig?: FlowConfig;
     };
     const baseSystemPrompt = config?.systemPrompt ?? DEFAULT_SYSTEM_PROMPT;
+    const flowConfig = config?.flowConfig;
 
     // 2. RAG: ナレッジベースから関連コンテキストを取得
     let ragContext = '';
@@ -72,7 +74,14 @@ chat.post('/', async (c) => {
       logger.warn('RAG search failed, proceeding without context', ragErr);
     }
 
-    const systemPrompt = baseSystemPrompt + ragContext;
+    // フロー設定がある場合、CTAトリガー指示を注入
+    let flowInstruction = '';
+    if (flowConfig && flowConfig.ctaType !== 'none') {
+      flowInstruction = flowConfig.flowSystemPrompt
+        ? `\n\n${flowConfig.flowSystemPrompt}`
+        : `\n\n【重要なルール】お客様との会話が十分に進み、お客様が商品・サービスへの関心を示した段階で、ご提案メッセージの末尾に「[SHOW_CTA]」と記載してください。このマーカーはお客様には表示されません。1回のみ使用してください。`;
+    }
+    const systemPrompt = baseSystemPrompt + flowInstruction + ragContext;
 
     // 3. 会話を取得または新規作成
     let conversationId: string;
@@ -129,7 +138,17 @@ chat.post('/', async (c) => {
       messages: openaiMessages,
     });
 
-    const assistantContent = completion.choices[0]?.message?.content ?? '';
+    const rawContent = completion.choices[0]?.message?.content ?? '';
+
+    // [SHOW_CTA] マーカーを検出・除去
+    const CTA_MARKER = '[SHOW_CTA]';
+    const hasCtaMarker = rawContent.includes(CTA_MARKER);
+    const assistantContent = rawContent.replace(CTA_MARKER, '').trim();
+
+    // minMessages チェック（会話が浅すぎる場合はCTAを出さない）
+    const minMessages = flowConfig?.minMessages ?? 3;
+    const messageCount = existingMessages.filter((m) => m.role === 'user').length;
+    const showCta = hasCtaMarker && flowConfig?.ctaType !== 'none' && messageCount >= minMessages - 1;
 
     const assistantMessage: Message = {
       role: 'assistant',
@@ -157,6 +176,14 @@ chat.post('/', async (c) => {
       conversation_id: conversationId,
       message: assistantContent,
       role: 'assistant',
+      ...(showCta && flowConfig && {
+        show_cta: true,
+        cta_config: {
+          type: flowConfig.ctaType as 'line' | 'form',
+          lineUrl: flowConfig.lineUrl,
+          message: flowConfig.ctaMessage,
+        },
+      }),
     };
 
     logger.info('Chat response sent', { client_id, conversation_id: conversationId });

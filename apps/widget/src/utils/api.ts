@@ -34,6 +34,21 @@ export async function chatApi(request: ChatRequest, apiUrl = ''): Promise<ChatRe
   return data;
 }
 
+export async function leadsApi(
+  request: { client_id: string; name: string; email: string; source_page?: string },
+  apiUrl = ''
+): Promise<void> {
+  const url = buildUrl(apiUrl, '/api/leads');
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to submit lead: ${response.status}`);
+  }
+}
+
 export async function fetchClientConfig(
   clientId: string,
   apiUrl = ''

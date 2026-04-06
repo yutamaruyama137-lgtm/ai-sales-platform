@@ -9,6 +9,14 @@ export interface Client {
   created_at: string;
 }
 
+export interface FlowConfig {
+  ctaType: 'line' | 'form' | 'none';
+  lineUrl?: string;
+  ctaMessage?: string;
+  minMessages?: number;
+  flowSystemPrompt?: string;
+}
+
 export interface ClientConfig {
   systemPrompt?: string;
   welcomeMessage?: string;
@@ -19,6 +27,8 @@ export interface ClientConfig {
   buttonText?: string;      // デフォルト: 💬
   headerTitle?: string;     // デフォルト: AIアシスタント
   position?: 'bottom-right' | 'bottom-left';
+  // フローボット設定
+  flowConfig?: FlowConfig;
 }
 
 // ============================================================
@@ -84,10 +94,18 @@ export interface ChatRequest {
   message: string;
 }
 
+export interface CtaConfig {
+  type: 'line' | 'form';
+  lineUrl?: string;
+  message?: string;
+}
+
 export interface ChatResponse {
   conversation_id: string;
   message: string;
   role: 'assistant';
+  show_cta?: boolean;
+  cta_config?: CtaConfig;
 }
 
 export interface LeadRequest {

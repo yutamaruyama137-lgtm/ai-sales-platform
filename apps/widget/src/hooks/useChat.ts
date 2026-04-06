@@ -1,6 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import type { Message } from '@ai-sales/types';
-import type { ClientConfig } from '@ai-sales/types';
+import type { Message, ClientConfig, CtaConfig } from '@ai-sales/types';
 import { chatApi, fetchClientConfig } from '../utils/api';
 import { logger } from '../utils/logger';
 
@@ -14,6 +13,8 @@ interface UseChatReturn {
   isLoading: boolean;
   error: string | null;
   config: ClientConfig | null;
+  showCta: boolean;
+  ctaConfig: CtaConfig | null;
   sendMessage: (text: string) => Promise<void>;
 }
 
@@ -23,6 +24,8 @@ export function useChat({ clientId, apiUrl }: UseChatOptions): UseChatReturn {
   const [error, setError] = useState<string | null>(null);
   const [conversationId, setConversationId] = useState<string | undefined>(undefined);
   const [config, setConfig] = useState<ClientConfig | null>(null);
+  const [showCta, setShowCta] = useState(false);
+  const [ctaConfig, setCtaConfig] = useState<CtaConfig | null>(null);
 
   // クライアント設定を初期取得（ウェルカムメッセージ・カラー等）
   useEffect(() => {
@@ -58,6 +61,11 @@ export function useChat({ clientId, apiUrl }: UseChatOptions): UseChatReturn {
 
         setConversationId(response.conversation_id);
 
+        if (response.show_cta && response.cta_config) {
+          setShowCta(true);
+          setCtaConfig(response.cta_config);
+        }
+
         const assistantMessage: Message = {
           role: 'assistant',
           content: response.message,
@@ -76,5 +84,5 @@ export function useChat({ clientId, apiUrl }: UseChatOptions): UseChatReturn {
     [clientId, apiUrl, conversationId]
   );
 
-  return { messages, isLoading, error, config, sendMessage };
+  return { messages, isLoading, error, config, showCta, ctaConfig, sendMessage };
 }
