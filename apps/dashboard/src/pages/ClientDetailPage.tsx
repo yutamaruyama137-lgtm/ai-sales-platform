@@ -323,6 +323,217 @@ function SettingsTab({ client }: { client: Client }) {
 }
 
 // ────────────────── フロー設定タブ ──────────────────
+
+interface FlowTemplate {
+  key: string;
+  label: string;
+  emoji: string;
+  description: string;
+  systemPrompt: string;
+  welcomeMessage: string;
+  ctaType: 'line' | 'form';
+  ctaMessage: string;
+  minMessages: number;
+  flowSystemPrompt: string;
+}
+
+const FLOW_TEMPLATES: FlowTemplate[] = [
+  {
+    key: 'realestate',
+    label: '不動産',
+    emoji: '🏠',
+    description: '購入・賃貸問わず、条件ヒアリング→概算提示→内見申込へ誘導',
+    systemPrompt: 'あなたは不動産仲介会社のAI営業アシスタントです。丁寧かつ専門的に、お客様の理想の住まい探しをサポートします。',
+    welcomeMessage: 'こんにちは！お部屋探し・物件購入のご相談はお気軽にどうぞ。ご希望をお聞かせください。',
+    ctaType: 'line',
+    ctaMessage: '気になる物件の詳細資料・内見日程をLINEでご案内します。友だち追加お待ちしています！',
+    minMessages: 4,
+    flowSystemPrompt: `あなたは不動産仲介会社のAI営業アシスタントです。
+
+【ヒアリング項目（以下を順番に確認してください）】
+1. 購入・賃貸どちらをお探しか
+2. ご希望のエリア・最寄り駅（複数可）
+3. 予算（購入: 総額または月々の支払い目安 / 賃貸: 月額家賃）
+4. 間取り・広さ（例: 2LDK、60㎡以上）
+5. ご入居希望時期
+6. こだわり条件（ペット可・駐車場・リモートワーク向け・学区等）
+
+【提案フェーズ】
+条件が揃ったら「〇〇エリアでは、ご予算内でご希望に近い物件が複数ございます。例えば〇〇駅周辺に△△万円台の物件が出ています」と具体的に伝えてください。
+実際の物件名は出さず、エリア・価格帯・特徴のみ言及すること。
+
+【CTA発動条件（以下が揃ったら [SHOW_CTA] を末尾に付けること）】
+・ヒアリングが完了した
+・物件の概算・提案ができた
+・「見てみたい」「詳しく知りたい」等の前向きな反応があった
+
+CTAの直前に「担当者より詳細な物件情報・内見のご案内をさせていただきます。」と必ず添えてください。
+[SHOW_CTA] は1回のみ使用すること。`,
+  },
+  {
+    key: 'school',
+    label: 'スクール・塾',
+    emoji: '📚',
+    description: '目標ヒアリング→コース提案→無料体験・個別相談へ誘導',
+    systemPrompt: 'あなたは学習スクールのAI入学相談員です。生徒・保護者の目標を丁寧にお聞きし、最適なコースをご提案します。',
+    welcomeMessage: 'こんにちは！コースや料金についてのご質問、体験レッスンのご相談はお気軽にどうぞ。',
+    ctaType: 'form',
+    ctaMessage: '無料体験レッスン・個別相談のご予約を承ります。お名前とメールアドレスをご入力ください。',
+    minMessages: 4,
+    flowSystemPrompt: `あなたは学習スクールのAI入学相談員です。
+
+【ヒアリング項目（順番に確認してください）】
+1. 相談者（生徒本人 or 保護者）
+2. 目標（資格取得・受験・スキルアップ・就職活動・趣味等）
+3. 現在のレベル・経験（全くの初心者〜上級者）
+4. 通塾可能な曜日・時間帯（オンライン可否も確認）
+5. 通い始めたい時期
+6. 気になっていること（費用・進度・カリキュラム・講師等）
+
+【提案フェーズ】
+条件が揃ったら「〇〇コース（月〇回・〇ヶ月完結）がおすすめです。受講料の目安は月〇〇円〜です」と具体的に提案してください。
+できれば2〜3つの選択肢を提示し、それぞれのメリットを簡潔に伝えること。
+
+【CTA発動条件（以下が揃ったら [SHOW_CTA] を末尾に付けること）】
+・希望コースが絞り込めた
+・費用・スケジュールの概算をお伝えした
+・「詳しく知りたい」「体験できますか」「申し込みたい」等の意向がある
+
+CTAの直前に「まずは無料体験レッスン（〇〇分）でお試しいただけます。担当スタッフよりご連絡します。」と添えてください。
+[SHOW_CTA] は1回のみ使用すること。`,
+  },
+  {
+    key: 'salon',
+    label: '美容サロン',
+    emoji: '💇',
+    description: 'メニュー相談→施術内容・料金提案→LINE予約へ誘導',
+    systemPrompt: 'あなたは美容サロンのAIコンシェルジュです。お客様のなりたいイメージをお聞きし、最適なメニューをご提案します。',
+    welcomeMessage: 'こんにちは！メニューや料金のご相談、ご予約はこちらからどうぞ。お気軽にメッセージください！',
+    ctaType: 'line',
+    ctaMessage: 'LINEからかんたんにご予約いただけます。友だち追加後、ご希望の日時をお送りください！',
+    minMessages: 3,
+    flowSystemPrompt: `あなたは美容サロンのAIコンシェルジュです。
+
+【ヒアリング項目】
+1. ご希望のメニュー（カット・カラー・パーマ・縮毛矯正・ヘアケア等）
+2. 現在の髪の状態（長さ・ダメージ具合・過去の施術履歴）
+3. なりたいイメージ（カジュアル・ナチュラル・派手め・ビジネス向け等）
+4. 予算の目安
+5. ご希望の日時（平日・週末・時間帯の希望）
+6. 初めてのご来店かどうか
+
+【提案フェーズ】
+ご希望に合ったメニューと所要時間・価格帯をお伝えする。
+「〇〇スタイルでしたら、カット+カラーで△△円〜、約〇時間です。初回割引で□□円になります」と具体的に伝えること。
+
+【CTA発動条件（以下が揃ったら [SHOW_CTA] を末尾に付けること）】
+・ご希望メニューが決まった
+・予算・所要時間のすり合わせができた
+・「予約したい」「行ってみたい」の意向が見えた
+
+CTAの直前に「ご予約はLINEからかんたんにできます！空き状況もすぐご確認いただけます。」と添えてください。
+[SHOW_CTA] は1回のみ使用すること。`,
+  },
+  {
+    key: 'fitness',
+    label: 'フィットネス',
+    emoji: '💪',
+    description: '目標・ライフスタイルヒアリング→プラン提案→無料体験申込へ',
+    systemPrompt: 'あなたはフィットネスジムのAIトレーナー兼入会相談員です。目標に合った最適なトレーニングプランをご提案します。',
+    welcomeMessage: 'こんにちは！ダイエット・筋トレ・健康維持など、目標に合ったプランをご提案します。お気軽にご相談ください！',
+    ctaType: 'form',
+    ctaMessage: '無料体験トレーニングのお申込みはこちら。スタッフよりご連絡します！',
+    minMessages: 4,
+    flowSystemPrompt: `あなたはフィットネスジムのAIトレーナー兼入会相談員です。
+
+【ヒアリング項目】
+1. 目標（ダイエット・筋肉増量・健康維持・スポーツパフォーマンス向上・姿勢改善等）
+2. 現在の運動習慣・経験（全くなし〜週3回以上）
+3. 通える頻度・時間帯（週何回・朝/昼/夜）
+4. 関心のあるサービス（パーソナルトレーニング・24時間利用・グループレッスン等）
+5. 予算感（月額の目安）
+6. 気になっていること（続けられるか・ダイエット効果・ケガのリスク等）
+
+【提案フェーズ】
+目標に合ったプランを2〜3案提示する。
+「週2回のパーソナルトレーニング（月4回）プランと、通い放題プランがおすすめです。前者は月〇万円〜、後者は月〇千円〜です」のように比較しやすく伝えること。
+
+【CTA発動条件（以下が揃ったら [SHOW_CTA] を末尾に付けること）】
+・目標・生活スタイルのヒアリングが完了した
+・具体的なプランを提案し、費用感も伝えた
+・「試してみたい」「詳しく聞きたい」等の前向きな反応があった
+
+CTAの直前に「まずは無料体験トレーニング（60分）をお申し込みいただけます！」と添えてください。
+[SHOW_CTA] は1回のみ使用すること。`,
+  },
+  {
+    key: 'insurance',
+    label: '保険・FP相談',
+    emoji: '🛡️',
+    description: '状況ヒアリング→保障の方向性提案→無料FP相談へ誘導',
+    systemPrompt: 'あなたはファイナンシャルプランナー（FP）のAIアシスタントです。お客様の状況に合った保険・資産運用の方向性をご提案します。具体的な商品の推奨は対面相談で行います。',
+    welcomeMessage: 'こんにちは！保険の見直し・資産運用・老後の備えなど、FP相談に関するご質問をどうぞ。',
+    ctaType: 'form',
+    ctaMessage: '無料FP相談（30分・オンライン可）のお申込みはこちら。担当FPよりご連絡します。',
+    minMessages: 4,
+    flowSystemPrompt: `あなたはファイナンシャルプランナー（FP）のAIアシスタントです。
+
+【重要な注意事項】
+具体的な金融商品の推奨・勧誘は行いません。あくまで情報提供・方向性の整理として相談をお受けします。
+
+【ヒアリング項目】
+1. 相談内容（生命保険・医療保険・学資保険・老後資金・資産運用・保険の見直し等）
+2. 家族構成・年齢層（大まかで可）
+3. 現在の加入状況（大まかで可。例：「生命保険に入っている」程度で十分）
+4. 特に気になっていること（保障額が足りているか・保険料が高い・将来の備え等）
+5. 相談の緊急度（今すぐ検討中 or いずれ考えたい）
+
+【提案フェーズ】
+「〇〇のご状況でしたら、△△について整理してみることをお勧めします。例えば〜」と方向性を示す。
+具体的な商品名・保険会社名は出さないこと。
+
+【CTA発動条件（以下が揃ったら [SHOW_CTA] を末尾に付けること）】
+・相談内容と家族構成が把握できた
+・課題の方向性（見直し・新規加入・積立等）が見えた
+・「詳しく話を聞きたい」「相談したい」の意向がある
+
+CTAの直前に「専門のFPが個別に状況を伺い、最適な方向性をご提案します（無料・オンライン可）。」と添えてください。
+[SHOW_CTA] は1回のみ使用すること。`,
+  },
+  {
+    key: 'reform',
+    label: 'リフォーム',
+    emoji: '🔨',
+    description: '要望ヒアリング→概算見積り→現地調査申込へ誘導',
+    systemPrompt: 'あなたはリフォーム会社のAIアシスタントです。お客様のご要望をヒアリングし、最適なリフォームプランと概算費用をご提案します。',
+    welcomeMessage: 'こんにちは！リフォームのご相談はこちらから。ご希望の箇所・ご予算・時期など、お気軽にお聞かせください。',
+    ctaType: 'form',
+    ctaMessage: '無料の現地調査・お見積りをお申し込みいただけます。担当者よりご連絡します！',
+    minMessages: 4,
+    flowSystemPrompt: `あなたはリフォーム会社のAIアシスタントです。
+
+【ヒアリング項目】
+1. リフォームしたい箇所（キッチン・浴室・トイレ・洗面・外壁・屋根・内装・全体等）
+2. 住宅の種類・築年数（戸建て/マンション、大まかな築年数）
+3. 現在の状態・お困りのこと（雨漏り・設備の老朽化・使いにくい・見た目を変えたい等）
+4. 希望する仕上がりイメージ（ナチュラル・モダン・和風・機能重視等）
+5. 予算（目安で可。例：「100万円以内」「500万円くらいまで」）
+6. 希望する工事時期・期間、住みながらの施工が可能か
+
+【提案フェーズ】
+「〇〇のリフォームでしたら、工期約〇週間、費用は〇〇万円〜〇〇万円が目安です。素材・仕様によって変わります」と伝える。
+主要な選択肢（グレード違い・工法違い等）も簡単に紹介すること。
+
+【CTA発動条件（以下が揃ったら [SHOW_CTA] を末尾に付けること）】
+・リフォーム箇所・予算・時期が把握できた
+・概算費用・工期をお伝えした
+・「詳しく見てほしい」「現地で確認してほしい」「見積もりを出してほしい」等の反応があった
+
+CTAの直前に「無料で現地調査・詳細お見積りをご案内できます。担当者がお伺いします。」と添えてください。
+[SHOW_CTA] は1回のみ使用すること。`,
+  },
+];
+
 function FlowTab({ client }: { client: Client }) {
   const { updateClient } = useClients();
   const cfg = (client.config as ClientConfig) ?? {};
@@ -333,25 +544,16 @@ function FlowTab({ client }: { client: Client }) {
   const [ctaMessage, setCtaMessage] = useState(flow.ctaMessage ?? '');
   const [minMessages, setMinMessages] = useState(String(flow.minMessages ?? 3));
   const [flowSystemPrompt, setFlowSystemPrompt] = useState(flow.flowSystemPrompt ?? '');
+  const [appliedTemplate, setAppliedTemplate] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
 
-  const TEMPLATES: Record<string, { systemPrompt: string; ctaMessage: string }> = {
-    realestate: {
-      systemPrompt: 'あなたは不動産会社のAIアシスタントです。\n【会話の流れ】\n1. お客様のご希望（エリア・予算・間取り・家族構成）をヒアリングしてください。\n2. 条件が揃ったら、おすすめ物件の概算をお伝えしてください。\n3. 詳細資料・内見のご案内を提案する際、必ずメッセージの末尾に [SHOW_CTA] を含めてください。\n\n[SHOW_CTA] は1回のみ使用し、お客様が物件に関心を示したタイミングで使用してください。',
-      ctaMessage: '詳細な物件情報や内見日程をLINEでお送りします。ぜひご登録ください！',
-    },
-    school: {
-      systemPrompt: 'あなたはスクールのAIアシスタントです。\n【会話の流れ】\n1. お客様の目標・現在のスキル・受講可能な時間帯をヒアリングしてください。\n2. 最適なコースと料金の目安をお伝えしてください。\n3. 無料体験・個別相談を提案する際、必ずメッセージの末尾に [SHOW_CTA] を含めてください。\n\n[SHOW_CTA] は1回のみ使用し、受講意欲が高まったタイミングで使用してください。',
-      ctaMessage: '無料体験レッスンのご予約を承ります。お気軽にお問い合わせください！',
-    },
-  };
-
-  const applyTemplate = (key: string) => {
-    const t = TEMPLATES[key];
-    if (!t) return;
-    setFlowSystemPrompt(t.systemPrompt);
+  const applyTemplate = (t: FlowTemplate) => {
+    setCtaType(t.ctaType);
     setCtaMessage(t.ctaMessage);
+    setMinMessages(String(t.minMessages));
+    setFlowSystemPrompt(t.flowSystemPrompt);
+    setAppliedTemplate(t.key);
   };
 
   const handleSave = async () => {
@@ -364,97 +566,131 @@ function FlowTab({ client }: { client: Client }) {
       minMessages: Number(minMessages) || 3,
       flowSystemPrompt: flowSystemPrompt || undefined,
     };
-    const newConfig: ClientConfig = { ...cfg, flowConfig: newFlowConfig };
+    // テンプレート適用時はsystemPromptとwelcomeMessageも上書き
+    const tpl = appliedTemplate ? FLOW_TEMPLATES.find((t) => t.key === appliedTemplate) : null;
+    const newConfig: ClientConfig = {
+      ...cfg,
+      ...(tpl ? { systemPrompt: tpl.systemPrompt, welcomeMessage: tpl.welcomeMessage } : {}),
+      flowConfig: newFlowConfig,
+    };
     const ok = await updateClient(client.id, client.name, client.domain ?? '', newConfig);
     setSaveMsg(ok ? '保存しました' : '保存に失敗しました');
     setSaving(false);
     setTimeout(() => setSaveMsg(''), 3000);
+    if (ok) setAppliedTemplate(null);
   };
 
   return (
-    <div style={{ maxWidth: '640px' }}>
-      {/* テンプレート */}
+    <div style={{ maxWidth: '720px' }}>
+      {/* テンプレート選択 */}
       <div style={s.card}>
         <h3 style={s.cardTitle}>業種別テンプレート</h3>
-        <p style={s.helpText}>業種を選ぶと、フロープロンプトとCTAメッセージを自動入力します。</p>
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <button style={s.primaryBtn} onClick={() => applyTemplate('realestate')}>不動産</button>
-          <button style={s.primaryBtn} onClick={() => applyTemplate('school')}>スクール</button>
+        <p style={s.helpText}>
+          業種を選ぶと、会話フロー・CTAメッセージ・AIキャラクター設定が自動入力されます。
+          「設定を保存」するとシステムプロンプト・ウェルカムメッセージも同時に更新されます。
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+          {FLOW_TEMPLATES.map((t) => (
+            <button
+              key={t.key}
+              style={{
+                ...s.templateCard,
+                ...(appliedTemplate === t.key ? s.templateCardActive : {}),
+              }}
+              onClick={() => applyTemplate(t)}
+            >
+              <span style={{ fontSize: '22px' }}>{t.emoji}</span>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: 'rgba(0,0,0,0.9)' }}>{t.label}</span>
+              <span style={{ fontSize: '11px', color: '#64748b', lineHeight: 1.4 }}>{t.description}</span>
+            </button>
+          ))}
         </div>
+        {appliedTemplate && (
+          <div style={{ marginTop: '12px', padding: '10px 14px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '6px', fontSize: '13px', color: '#166534' }}>
+            ✓ テンプレートを適用しました。下の設定を確認して「設定を保存」してください。
+          </div>
+        )}
       </div>
 
       {/* CTA設定 */}
       <div style={{ ...s.card, marginTop: '16px' }}>
         <h3 style={s.cardTitle}>CTAタイプ</h3>
-        <p style={s.helpText}>AIが適切なタイミングで自動的に表示するアクションボタンを選択します。</p>
-        <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-          {(['none', 'line', 'form'] as const).map((type) => (
-            <label key={type} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: 500 }}>
-              <input type="radio" name="ctaType" value={type} checked={ctaType === type} onChange={() => setCtaType(type)} />
-              {type === 'none' ? '表示しない' : type === 'line' ? 'LINE登録' : '問い合わせフォーム'}
+        <p style={s.helpText}>AIが適切なタイミングで自動表示するアクションを選択します。</p>
+        <div style={{ display: 'flex', gap: '16px', marginBottom: '16px', flexWrap: 'wrap' }}>
+          {([
+            { value: 'none', label: '表示しない', desc: 'CTAなし' },
+            { value: 'line', label: 'LINE登録', desc: '友だち追加URLへ誘導' },
+            { value: 'form', label: 'お問い合わせ', desc: '名前・メール取得' },
+          ] as const).map(({ value, label, desc }) => (
+            <label
+              key={value}
+              style={{
+                display: 'flex', flexDirection: 'column', gap: '2px',
+                padding: '10px 14px', border: `1px solid ${ctaType === value ? '#0075de' : 'rgba(0,0,0,0.12)'}`,
+                borderRadius: '8px', cursor: 'pointer', flex: '1', minWidth: '120px',
+                background: ctaType === value ? '#f0f7ff' : '#fff',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <input type="radio" name="ctaType" value={value} checked={ctaType === value} onChange={() => setCtaType(value)} />
+                <span style={{ fontSize: '14px', fontWeight: 600 }}>{label}</span>
+              </div>
+              <span style={{ fontSize: '12px', color: '#64748b', paddingLeft: '20px' }}>{desc}</span>
             </label>
           ))}
         </div>
 
         {ctaType === 'line' && (
-          <label style={s.fieldLabel}>
-            LINE URL（友だち追加URL）
-            <input
-              style={s.input}
-              value={lineUrl}
-              onChange={(e) => setLineUrl(e.target.value)}
-              placeholder="https://lin.ee/xxxxxxx"
-            />
-          </label>
+          <>
+            <label style={s.fieldLabel}>
+              LINE 友だち追加URL
+              <input style={s.input} value={lineUrl} onChange={(e) => setLineUrl(e.target.value)} placeholder="https://lin.ee/xxxxxxx" />
+            </label>
+            <div style={{ padding: '10px 14px', background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '6px', fontSize: '12px', color: '#92400e', marginBottom: '12px' }}>
+              💡 <strong>LINE公式アカウント</strong>の友だち追加URLを設定してください。
+              LINE Developers → Messaging API → QRコード横のURLです。
+            </div>
+          </>
         )}
 
         {ctaType !== 'none' && (
           <label style={s.fieldLabel}>
             CTAメッセージ（ウィジェット上に表示するテキスト）
-            <input
-              style={s.input}
-              value={ctaMessage}
-              onChange={(e) => setCtaMessage(e.target.value)}
-              placeholder="詳細をLINEでお送りします。ぜひご登録ください！"
-            />
+            <input style={s.input} value={ctaMessage} onChange={(e) => setCtaMessage(e.target.value)}
+              placeholder="詳細をLINEでご案内します。友だち追加をお願いします！" />
           </label>
         )}
 
         <label style={s.fieldLabel}>
           CTA表示までの最低メッセージ数
-          <input
-            style={s.input}
-            type="number"
-            min="1"
-            max="20"
-            value={minMessages}
-            onChange={(e) => setMinMessages(e.target.value)}
-          />
-          <span style={{ fontSize: '12px', color: '#94a3b8' }}>この回数以上のやり取りが発生するまでCTAを表示しません（デフォルト: 3）</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <input style={{ ...s.input, width: '80px' }} type="number" min="1" max="20" value={minMessages}
+              onChange={(e) => setMinMessages(e.target.value)} />
+            <span style={{ fontSize: '13px', color: '#64748b' }}>回以上のやり取り後にCTAを表示可能にする（推奨: 3〜6）</span>
+          </div>
         </label>
       </div>
 
       {/* フロープロンプト */}
       <div style={{ ...s.card, marginTop: '16px' }}>
-        <h3 style={s.cardTitle}>フロープロンプト（上級者向け）</h3>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+          <h3 style={{ ...s.cardTitle, margin: 0 }}>会話フロープロンプト</h3>
+          <span style={s.badge}>AIへの指示</span>
+        </div>
         <p style={s.helpText}>
-          AIに会話の流れを指示するプロンプトです。空白の場合はデフォルトの指示が使われます。
-          CTAを出したいタイミングで <code style={s.code}>[SHOW_CTA]</code> をメッセージに含めるようAIに指示してください。
+          AIがどのような会話の流れで進めるかを指示します。
+          CTAを出したいタイミングで <code style={s.code}>[SHOW_CTA]</code> を含めるよう指示してください。
         </p>
         <textarea
-          style={{ ...s.input, height: '180px', resize: 'vertical', marginTop: '8px' }}
+          style={{ ...s.input, height: '260px', resize: 'vertical', marginTop: '8px', fontFamily: 'monospace', fontSize: '13px', lineHeight: 1.6 }}
           value={flowSystemPrompt}
           onChange={(e) => setFlowSystemPrompt(e.target.value)}
-          placeholder="空欄の場合はデフォルトの指示が使われます"
+          placeholder="テンプレートを選択するか、直接入力してください。&#10;&#10;例:&#10;あなたは〇〇の営業アシスタントです。&#10;&#10;【ヒアリング項目】&#10;1. お名前・ご希望&#10;2. 予算&#10;...&#10;&#10;条件が揃ったら [SHOW_CTA] を末尾に付けてください。"
         />
       </div>
 
       <div style={{ marginTop: '24px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <button
-          style={{ ...s.primaryBtn, opacity: saving ? 0.6 : 1 }}
-          onClick={() => void handleSave()}
-          disabled={saving}
-        >
+        <button style={{ ...s.primaryBtn, opacity: saving ? 0.6 : 1 }} onClick={() => void handleSave()} disabled={saving}>
           {saving ? '保存中...' : '設定を保存'}
         </button>
         {saveMsg && (
@@ -651,4 +887,13 @@ const s: Record<string, React.CSSProperties> = {
     background: '#f6f5f4', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '6px', padding: '10px 14px',
   },
   idCode: { flex: 1, fontFamily: 'monospace', fontSize: '13px', color: 'rgba(0,0,0,0.95)', wordBreak: 'break-all' },
+  templateCard: {
+    display: 'flex', flexDirection: 'column' as const, gap: '4px',
+    padding: '12px', border: '1px solid rgba(0,0,0,0.1)', borderRadius: '10px',
+    cursor: 'pointer', background: '#fff', textAlign: 'left' as const,
+    fontFamily: 'inherit', transition: 'border-color 0.15s',
+  },
+  templateCardActive: {
+    border: '2px solid #0075de', background: '#f0f7ff',
+  },
 };
