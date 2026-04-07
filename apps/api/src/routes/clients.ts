@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import type { ApiError } from '@ai-sales/types';
 import { supabase } from '../lib/supabase.js';
 import { logger } from '../lib/logger.js';
+import { sendEmailNotification } from '../services/leadEngine.js';
 
 const clients = new Hono();
 
@@ -41,9 +42,14 @@ clients.get('/:id/config', async (c) => {
     }
 
     // configのみ返す（機密情報を除外）
-    const { webhookUrl: _w, notificationEmail: _n, ...publicConfig } =
-      (data.config as Record<string, unknown>) ?? {};
-    void _w; void _n;
+    const {
+      webhookUrl: _w,
+      notificationEmail: _n,
+      lineChannelAccessToken: _t,
+      lineChannelSecret: _s,
+      ...publicConfig
+    } = (data.config as Record<string, unknown>) ?? {};
+    void _w; void _n; void _t; void _s;
 
     return c.json({ config: publicConfig });
   } catch (err) {
@@ -124,6 +130,44 @@ clients.put('/:id', async (c) => {
   } catch (err) {
     logger.error('Client PUT error', err);
     return c.json<ApiError>({ error: 'Internal server error' }, 500);
+  }
+});
+
+// POST /api/clients/:id/test-email — テストメール送信
+clients.post('/:id/test-email', async (c) => {
+  const id = c.req.param('id');
+
+  try {
+    const { data: client, error } = await supabase
+      .from('clients')
+      .select('name, config')
+      .eq('id', id)
+      .single();
+
+    if (error || !client) {
+      return c.json<ApiError>({ error: 'Client not found' }, 404);
+    }
+
+    const config = client.config as { notificationEmail?: string };
+
+    if (!config.notificationEmail) {
+      return c.json<ApiError>({ error: '通知メールアドレスが設定されていません' }, 400);
+    }
+
+    await sendEmailNotification(config.notificationEmail, {
+      name: 'テスト 太郎',
+      email: 'test@example.com',
+      phone: '090-0000-0000',
+      answers: {},
+      clientName: (client as { name?: string }).name,
+      sourcePage: 'テスト送信',
+    });
+
+    logger.info('Test email sent', { clientId: id, to: config.notificationEmail });
+    return c.json({ success: true, to: config.notificationEmail });
+  } catch (err) {
+    logger.error('Test email error', err);
+    return c.json<ApiError>({ error: 'メール送信に失敗しました' }, 500);
   }
 });
 

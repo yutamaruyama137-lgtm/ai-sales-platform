@@ -124,15 +124,6 @@ chat.post('/', async (c) => {
       timestamp: new Date().toISOString(),
     };
 
-    const openaiMessages = [
-      { role: 'system' as const, content: systemPrompt },
-      ...existingMessages.map((m) => ({
-        role: m.role as 'user' | 'assistant',
-        content: m.content,
-      })),
-      { role: 'user' as const, content: message },
-    ];
-
     // 4. OpenAI 呼び出し（最大2回リトライ）
     let rawContent = '';
     let lastAiError: unknown = null;

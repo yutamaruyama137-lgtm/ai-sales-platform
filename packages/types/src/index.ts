@@ -29,6 +29,9 @@ export interface ClientConfig {
   position?: 'bottom-right' | 'bottom-left';
   // フローボット設定
   flowConfig?: FlowConfig;
+  // LINE Messaging API（クライアントごとに設定）
+  lineChannelAccessToken?: string;
+  lineChannelSecret?: string;
 }
 
 // ============================================================

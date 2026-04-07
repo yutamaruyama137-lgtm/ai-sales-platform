@@ -49,7 +49,7 @@ leads.post('/', async (c) => {
     // 2. クライアント設定を取得（Webhook / 通知メール用）
     const { data: client } = await supabase
       .from('clients')
-      .select('config')
+      .select('name, config')
       .eq('id', client_id)
       .single();
 
@@ -75,6 +75,8 @@ leads.post('/', async (c) => {
           email,
           phone,
           answers,
+          clientName: (client as { name?: string }).name,
+          sourcePage: source_page ?? undefined,
         }).catch((err) => logger.error('Async email error', err));
       }
     }

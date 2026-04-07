@@ -6,6 +6,7 @@ import { chat } from './routes/chat.js';
 import { leads } from './routes/leads.js';
 import { knowledge } from './routes/knowledge.js';
 import { clients } from './routes/clients.js';
+import { line } from './routes/line.js';
 import { logger } from './lib/logger.js';
 
 const app = new Hono();
@@ -32,6 +33,7 @@ app.route('/api/chat', chat);
 app.route('/api/leads', leads);
 app.route('/api/knowledge', knowledge);
 app.route('/api/clients', clients);
+app.route('/api/webhooks/line', line);
 
 // 404ハンドラー
 app.notFound((c) => {

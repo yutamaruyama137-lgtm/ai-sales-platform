@@ -280,6 +280,55 @@ function KnowledgeTab({ clientId }: { clientId: string }) {
   );
 }
 
+// ────────────────── テストメール送信ボタン ──────────────────
+function TestEmailButton({ clientId, notificationEmail }: { clientId: string; notificationEmail: string }) {
+  const [sending, setSending] = useState(false);
+  const [msg, setMsg] = useState('');
+
+  const handleTest = async () => {
+    if (!notificationEmail.trim()) {
+      setMsg('先にメールアドレスを入力して保存してください');
+      setTimeout(() => setMsg(''), 3000);
+      return;
+    }
+    setSending(true);
+    setMsg('');
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL as string ?? 'http://localhost:3000';
+      const res = await fetch(`${apiUrl}/api/clients/${clientId}/test-email`, { method: 'POST' });
+      if (res.ok) {
+        setMsg(`テストメールを ${notificationEmail} に送信しました`);
+      } else {
+        const data = await res.json() as { error?: string };
+        setMsg(data.error ?? '送信に失敗しました');
+      }
+    } catch {
+      setMsg('送信に失敗しました');
+    } finally {
+      setSending(false);
+      setTimeout(() => setMsg(''), 4000);
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '8px 0 16px' }}>
+      <button
+        type="button"
+        style={{ ...s.primaryBtn, padding: '7px 16px', fontSize: '13px', opacity: sending ? 0.6 : 1, background: '#0f766e' }}
+        onClick={() => void handleTest()}
+        disabled={sending}
+      >
+        {sending ? '送信中...' : 'テスト送信'}
+      </button>
+      {msg && (
+        <span style={{ fontSize: '13px', color: msg.includes('失敗') || msg.includes('先に') ? '#dc2626' : '#059669' }}>
+          {msg}
+        </span>
+      )}
+    </div>
+  );
+}
+
 // ────────────────── 設定タブ ──────────────────
 function SettingsTab({ client }: { client: Client }) {
   const { updateClient } = useClients();
@@ -294,6 +343,8 @@ function SettingsTab({ client }: { client: Client }) {
   const [buttonText, setButtonText] = useState(cfg.buttonText ?? '💬');
   const [notificationEmail, setNotificationEmail] = useState(cfg.notificationEmail ?? '');
   const [webhookUrl, setWebhookUrl] = useState(cfg.webhookUrl ?? '');
+  const [lineChannelAccessToken, setLineChannelAccessToken] = useState(cfg.lineChannelAccessToken ?? '');
+  const [lineChannelSecret, setLineChannelSecret] = useState(cfg.lineChannelSecret ?? '');
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
 
@@ -308,6 +359,8 @@ function SettingsTab({ client }: { client: Client }) {
       buttonText: buttonText || undefined,
       notificationEmail: notificationEmail || undefined,
       webhookUrl: webhookUrl || undefined,
+      lineChannelAccessToken: lineChannelAccessToken || undefined,
+      lineChannelSecret: lineChannelSecret || undefined,
     };
     const ok = await updateClient(client.id, name, domain, newConfig);
     setSaveMsg(ok ? '保存しました' : '保存に失敗しました');
@@ -363,10 +416,59 @@ function SettingsTab({ client }: { client: Client }) {
 
       <div style={{ ...s.card, marginTop: '16px' }}>
         <h3 style={s.cardTitle}>通知設定</h3>
+        <p style={s.helpText}>
+          新しいリードが登録されたときに、指定したメールアドレスへ自動で通知します。
+        </p>
         <Field label="通知メールアドレス" value={notificationEmail} onChange={setNotificationEmail}
           placeholder="admin@yourcompany.com" />
+        <TestEmailButton clientId={client.id} notificationEmail={notificationEmail} />
         <Field label="Webhook URL" value={webhookUrl} onChange={setWebhookUrl}
           placeholder="https://hooks.slack.com/..." />
+      </div>
+
+      <div style={{ ...s.card, marginTop: '16px' }}>
+        <h3 style={s.cardTitle}>LINE Messaging API 設定</h3>
+        <p style={s.helpText}>
+          クライアント自身のLINE公式アカウントのCredentialを設定してください。
+          友だち追加イベントが自動でリードに保存されます。
+        </p>
+        <label style={s.fieldLabel}>
+          Webhook URL（LINEの管理画面に登録してください）
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+            <code style={{ flex: 1, fontSize: '12px', padding: '8px 10px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '6px', wordBreak: 'break-all' }}>
+              {`https://ai-salesapi-production.up.railway.app/api/webhooks/line/${client.id}`}
+            </code>
+            <button
+              type="button"
+              style={{ ...s.primaryBtn, padding: '7px 12px', fontSize: '12px', whiteSpace: 'nowrap' }}
+              onClick={() => { void navigator.clipboard.writeText(`https://ai-salesapi-production.up.railway.app/api/webhooks/line/${client.id}`); }}
+            >
+              コピー
+            </button>
+          </div>
+        </label>
+        <label style={{ ...s.fieldLabel, marginTop: '12px' }}>
+          Channel Access Token
+          <input
+            style={s.input}
+            type="password"
+            value={lineChannelAccessToken}
+            onChange={(e) => setLineChannelAccessToken(e.target.value)}
+            placeholder="Channel Access Token（長期）"
+            autoComplete="off"
+          />
+        </label>
+        <label style={{ ...s.fieldLabel, marginTop: '8px' }}>
+          Channel Secret
+          <input
+            style={s.input}
+            type="password"
+            value={lineChannelSecret}
+            onChange={(e) => setLineChannelSecret(e.target.value)}
+            placeholder="Channel Secret"
+            autoComplete="off"
+          />
+        </label>
       </div>
 
       <div style={{ marginTop: '24px', display: 'flex', alignItems: 'center', gap: '16px' }}>

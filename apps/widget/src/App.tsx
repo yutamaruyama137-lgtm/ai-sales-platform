@@ -12,7 +12,7 @@ const DEFAULT_COLOR = '#2563eb';
 
 // ウィジェット用CSSアニメーションを一度だけDOMに挿入
 let stylesInjected = false;
-function injectStyles(primaryColor: string) {
+function injectStyles() {
   if (stylesInjected) return;
   stylesInjected = true;
   const style = document.createElement('style');
@@ -95,7 +95,7 @@ export default function App({ clientId, apiUrl }: AppProps): React.ReactElement 
   const headerTitle = config?.headerTitle || 'AIアシスタント';
   const position = config?.position || 'bottom-right';
 
-  useEffect(() => { injectStyles(primaryColor); }, [primaryColor]);
+  useEffect(() => { injectStyles(); }, []);
 
   const positionStyle: React.CSSProperties =
     position === 'bottom-left' ? { bottom: '24px', left: '24px' } : { bottom: '24px', right: '24px' };
