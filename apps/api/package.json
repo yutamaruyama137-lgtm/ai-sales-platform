@@ -12,17 +12,18 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "hono": "^4.3.11",
+    "@ai-sales/types": "workspace:*",
     "@hono/node-server": "^1.11.4",
-    "openai": "^4.52.0",
     "@supabase/supabase-js": "^2.43.5",
-    "nodemailer": "^6.9.13",
     "dotenv": "^16.4.5",
-    "@ai-sales/types": "workspace:*"
+    "hono": "^4.3.11",
+    "nodemailer": "^6.9.13",
+    "openai": "^4.52.0",
+    "resend": "^6.10.0"
   },
   "devDependencies": {
-    "@types/nodemailer": "^6.4.15",
     "@types/node": "^20.14.9",
+    "@types/nodemailer": "^6.4.15",
     "tsx": "^4.16.0",
     "typescript": "^5.4.5",
     "vitest": "^1.6.0"

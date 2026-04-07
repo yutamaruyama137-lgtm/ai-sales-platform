@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import { logger } from '../lib/logger.js';
 
 // Webhook送信
@@ -17,7 +17,7 @@ export async function sendWebhook(webhookUrl: string, leadData: unknown): Promis
   }
 }
 
-// Gmail通知（nodemailer SMTP）
+// メール通知（Resend API）
 export async function sendEmailNotification(
   toEmail: string,
   leadData: {
@@ -29,34 +29,22 @@ export async function sendEmailNotification(
     sourcePage?: string;
   }
 ): Promise<void> {
-  const smtpUser = process.env.SMTP_USER;
-  const smtpPass = process.env.SMTP_PASS;
-  const smtpHost = process.env.SMTP_HOST;
-  const smtpPort = process.env.SMTP_PORT;
+  const resendApiKey = process.env.RESEND_API_KEY;
 
-  if (!smtpUser || !smtpPass || !smtpHost) {
-    logger.warn('SMTP settings not configured, skipping email notification');
+  if (!resendApiKey) {
+    logger.warn('RESEND_API_KEY not configured, skipping email notification');
     return;
   }
 
-  try {
-    const transporter = nodemailer.createTransport({
-      host: smtpHost,
-      port: Number(smtpPort ?? 587),
-      secure: false,
-      auth: { user: smtpUser, pass: smtpPass },
-      connectionTimeout: 8000,
-      greetingTimeout: 8000,
-      socketTimeout: 8000,
-    });
+  const resend = new Resend(resendApiKey);
+  const clientLabel = leadData.clientName ? `【${leadData.clientName}】` : '';
 
-    const clientLabel = leadData.clientName ? `【${leadData.clientName}】` : '';
-    const answersHtml = Object.entries(leadData.answers ?? {})
-      .filter(([k]) => k !== 'source' && k !== 'line_user_id')
-      .map(([k, v]) => `<tr><td style="padding:6px 12px;border-bottom:1px solid #f0f0f0;color:#666;width:120px">${k}</td><td style="padding:6px 12px;border-bottom:1px solid #f0f0f0">${v}</td></tr>`)
-      .join('');
+  const answersHtml = Object.entries(leadData.answers ?? {})
+    .filter(([k]) => k !== 'source' && k !== 'line_user_id')
+    .map(([k, v]) => `<tr><td style="padding:6px 12px;border-bottom:1px solid #f0f0f0;color:#666;width:120px">${k}</td><td style="padding:6px 12px;border-bottom:1px solid #f0f0f0">${v}</td></tr>`)
+    .join('');
 
-    const html = `
+  const html = `
 <div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden">
   <div style="background:#2563eb;padding:18px 24px">
     <h2 style="margin:0;color:#fff;font-size:16px">新しいリードが登録されました</h2>
@@ -76,13 +64,19 @@ export async function sendEmailNotification(
   </div>
 </div>`.trim();
 
-    await transporter.sendMail({
-      from: `AI Sales Platform <${smtpUser}>`,
+  try {
+    const { error } = await resend.emails.send({
+      from: 'AI Sales Platform <onboarding@resend.dev>',
       to: toEmail,
       subject: `${clientLabel}新しいリード: ${leadData.name ?? '名前未記入'}`,
       html,
-      text: `新しいリードが登録されました。\n\n名前: ${leadData.name ?? '-'}\nメール: ${leadData.email ?? '-'}\n電話: ${leadData.phone ?? '-'}\n流入: ${leadData.sourcePage ?? '-'}`,
     });
+
+    if (error) {
+      logger.error('Resend API error', error);
+      throw new Error(error.message);
+    }
+
     logger.info('Email notification sent', { to: toEmail });
   } catch (err) {
     logger.error('Email notification error', err);

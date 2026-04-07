@@ -1,6 +1,6 @@
 # AI Sales Platform — 実装ロードマップ
 
-> 最終更新: 2026-04-06  
+> 最終更新: 2026-04-07  
 > 現在フェーズ: Phase 2（フローボット）
 
 ---
@@ -36,21 +36,22 @@ ai-sales-platform/
 
 #### 🔴 最優先（今週）
 
-- [ ] **LINE Messaging API 連携**
-  - LINE公式アカウント作成
-  - Channel Access Token を Railway に環境変数追加
-  - `POST /api/webhooks/line` エンドポイント作成
+- [x] **LINE Messaging API 連携**
+  - クライアントごとに Channel Access Token / Secret をダッシュボードから設定
+  - `POST /api/webhooks/line/:client_id` エンドポイント実装（署名検証済み）
   - 友だち追加 → leads テーブルに自動保存
-  - 詳細: [`docs/LINE_INTEGRATION.md`](./LINE_INTEGRATION.md)
+  - 公開configから機密情報を除外済み
 
 - [ ] **ナレッジ充実（RAG）**
   - 各クライアントごとに最低10件登録
   - 必須カテゴリ: 料金・FAQ・会社概要・事例
   - Notion連携（下記参照）で既存コンテンツをインポート
 
-- [ ] **通知メール設定**
-  - Railway に SMTP 環境変数を追加
-  - リード取得時に即時メール通知を有効化
+- [x] **通知メール設定**
+  - クライアントごとに通知先メールアドレスをダッシュボードから設定
+  - リード取得時に即時メール通知（HTML形式・クライアント名・流入ページ入り）
+  - テスト送信ボタンで動作確認可能
+  - ※ Railway に SMTP 環境変数（SMTP_HOST/USER/PASS）の設定が必要
 
 #### 🟡 中優先（来週）
 

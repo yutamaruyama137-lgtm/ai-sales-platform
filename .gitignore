@@ -5,3 +5,7 @@ dist
 build
 .turbo
 *.tsbuildinfo
+
+.vercel
+.aidesigner/*
+!.aidesigner/.gitkeep
