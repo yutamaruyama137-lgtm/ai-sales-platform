@@ -166,8 +166,9 @@ clients.post('/:id/test-email', async (c) => {
     logger.info('Test email sent', { clientId: id, to: config.notificationEmail });
     return c.json({ success: true, to: config.notificationEmail });
   } catch (err) {
+    const message = err instanceof Error ? err.message : 'メール送信に失敗しました';
     logger.error('Test email error', err);
-    return c.json<ApiError>({ error: 'メール送信に失敗しました' }, 500);
+    return c.json<ApiError>({ error: message }, 500);
   }
 });
 

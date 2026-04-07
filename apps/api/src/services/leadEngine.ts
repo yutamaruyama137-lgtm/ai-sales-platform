@@ -83,5 +83,6 @@ export async function sendEmailNotification(
     logger.info('Email notification sent', { to: toEmail });
   } catch (err) {
     logger.error('Email notification error', err);
+    throw err;
   }
 }
