@@ -294,8 +294,14 @@ function TestEmailButton({ clientId, notificationEmail }: { clientId: string; no
     setSending(true);
     setMsg('');
     try {
-      const apiUrl = import.meta.env.VITE_API_URL as string ?? 'http://localhost:3000';
-      const res = await fetch(`${apiUrl}/api/clients/${clientId}/test-email`, { method: 'POST' });
+      const apiUrl = (import.meta.env.VITE_API_URL as string) || 'http://localhost:3000';
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 10000);
+      const res = await fetch(`${apiUrl}/api/clients/${clientId}/test-email`, {
+        method: 'POST',
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
       if (res.ok) {
         setMsg(`テストメールを ${notificationEmail} に送信しました`);
       } else {
