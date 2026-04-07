@@ -45,6 +45,9 @@ export async function sendEmailNotification(
       port: Number(smtpPort ?? 587),
       secure: false,
       auth: { user: smtpUser, pass: smtpPass },
+      connectionTimeout: 8000,
+      greetingTimeout: 8000,
+      socketTimeout: 8000,
     });
 
     const clientLabel = leadData.clientName ? `【${leadData.clientName}】` : '';
