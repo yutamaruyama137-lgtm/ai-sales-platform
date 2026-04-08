@@ -21,9 +21,13 @@ export function useClients(): UseClientsReturn {
     setLoading(true);
     setError(null);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
       const { data, error: fetchError } = await supabase
         .from('clients')
         .select('id, name, domain, config, created_at')
+        .eq('owner_id', user.id)
         .order('created_at', { ascending: false });
 
       if (fetchError) throw fetchError;
@@ -44,9 +48,12 @@ export function useClients(): UseClientsReturn {
   const createClient = useCallback(
     async (name: string, domain?: string): Promise<Client | null> => {
       try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Not authenticated');
+
         const { data, error: insertError } = await supabase
           .from('clients')
-          .insert({ name, domain: domain || null, config: {} })
+          .insert({ name, domain: domain || null, config: {}, owner_id: user.id })
           .select('id, name, domain, config, created_at')
           .single();
 
