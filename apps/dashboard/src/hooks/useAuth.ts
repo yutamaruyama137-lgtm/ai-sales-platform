@@ -16,25 +16,30 @@ export function useAuth(): UseAuthReturn {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let validationComplete = false;
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      // 初回検証が完了するまでonAuthStateChangeによる更新を無視する
+      if (validationComplete) {
+        setSession(newSession);
+        setLoading(false);
+      }
+    });
+
     const initAuth = async () => {
       const { data: { user }, error } = await supabase.auth.getUser();
       if (error || !user) {
         await supabase.auth.signOut();
         setSession(null);
-        setLoading(false);
-        return;
+      } else {
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        setSession(currentSession);
       }
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-      setSession(currentSession);
+      validationComplete = true;
       setLoading(false);
     };
 
     void initAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession);
-      setLoading(false);
-    });
 
     return () => {
       subscription.unsubscribe();
