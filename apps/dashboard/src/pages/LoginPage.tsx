@@ -26,7 +26,7 @@ export function LoginPage(): React.ReactElement {
       if (result.error) {
         setError(result.error);
       } else {
-        setSuccess('アカウントを作成しました。そのままログインできます。');
+        setSuccess('確認メールを送りました。メール内のリンクをクリックするとログインできます。');
         setMode('login');
       }
     }
