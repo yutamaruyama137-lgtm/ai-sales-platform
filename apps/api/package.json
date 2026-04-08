@@ -14,12 +14,12 @@
   "dependencies": {
     "@ai-sales/types": "workspace:*",
     "@hono/node-server": "^1.11.4",
+    "@sendgrid/mail": "^8.1.6",
     "@supabase/supabase-js": "^2.43.5",
     "dotenv": "^16.4.5",
     "hono": "^4.3.11",
     "nodemailer": "^6.9.13",
-    "openai": "^4.52.0",
-    "resend": "^6.10.0"
+    "openai": "^4.52.0"
   },
   "devDependencies": {
     "@types/node": "^20.14.9",

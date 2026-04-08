@@ -1,4 +1,4 @@
-import { Resend } from 'resend';
+import sgMail from '@sendgrid/mail';
 import { logger } from '../lib/logger.js';
 
 // Webhook送信
@@ -17,7 +17,7 @@ export async function sendWebhook(webhookUrl: string, leadData: unknown): Promis
   }
 }
 
-// メール通知（Resend API）
+// メール通知（SendGrid API）
 export async function sendEmailNotification(
   toEmail: string,
   leadData: {
@@ -29,14 +29,15 @@ export async function sendEmailNotification(
     sourcePage?: string;
   }
 ): Promise<void> {
-  const resendApiKey = process.env.RESEND_API_KEY;
+  const apiKey = process.env.SENDGRID_API_KEY;
+  const fromEmail = process.env.SENDGRID_FROM_EMAIL;
 
-  if (!resendApiKey) {
-    logger.warn('RESEND_API_KEY not configured, skipping email notification');
+  if (!apiKey || !fromEmail) {
+    logger.warn('SENDGRID_API_KEY or SENDGRID_FROM_EMAIL not configured, skipping email notification');
     return;
   }
 
-  const resend = new Resend(resendApiKey);
+  sgMail.setApiKey(apiKey);
   const clientLabel = leadData.clientName ? `【${leadData.clientName}】` : '';
 
   const answersHtml = Object.entries(leadData.answers ?? {})
@@ -65,17 +66,12 @@ export async function sendEmailNotification(
 </div>`.trim();
 
   try {
-    const { error } = await resend.emails.send({
-      from: 'AI Sales Platform <onboarding@resend.dev>',
+    await sgMail.send({
+      from: `AI Sales Platform <${fromEmail}>`,
       to: toEmail,
       subject: `${clientLabel}新しいリード: ${leadData.name ?? '名前未記入'}`,
       html,
     });
-
-    if (error) {
-      logger.error('Resend API error', error);
-      throw new Error(error.message);
-    }
 
     logger.info('Email notification sent', { to: toEmail });
   } catch (err) {
