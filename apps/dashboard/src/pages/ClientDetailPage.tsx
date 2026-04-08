@@ -299,6 +299,8 @@ function TestEmailButton({ clientId, notificationEmail }: { clientId: string; no
       const timer = setTimeout(() => controller.abort(), 10000);
       const res = await fetch(`${apiUrl}/api/clients/${clientId}/test-email`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: notificationEmail }),
         signal: controller.signal,
       });
       clearTimeout(timer);

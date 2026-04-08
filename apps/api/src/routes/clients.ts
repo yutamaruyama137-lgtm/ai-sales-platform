@@ -138,6 +138,12 @@ clients.post('/:id/test-email', async (c) => {
   const id = c.req.param('id');
 
   try {
+    let bodyEmail: string | undefined;
+    try {
+      const body = await c.req.json() as { email?: string };
+      bodyEmail = body.email?.trim() || undefined;
+    } catch { /* body省略可 */ }
+
     const { data: client, error } = await supabase
       .from('clients')
       .select('name, config')
@@ -149,12 +155,13 @@ clients.post('/:id/test-email', async (c) => {
     }
 
     const config = client.config as { notificationEmail?: string };
+    const toEmail = bodyEmail ?? config.notificationEmail;
 
-    if (!config.notificationEmail) {
+    if (!toEmail) {
       return c.json<ApiError>({ error: '通知メールアドレスが設定されていません' }, 400);
     }
 
-    await sendEmailNotification(config.notificationEmail, {
+    await sendEmailNotification(toEmail, {
       name: 'テスト 太郎',
       email: 'test@example.com',
       phone: '090-0000-0000',
@@ -163,8 +170,8 @@ clients.post('/:id/test-email', async (c) => {
       sourcePage: 'テスト送信',
     });
 
-    logger.info('Test email sent', { clientId: id, to: config.notificationEmail });
-    return c.json({ success: true, to: config.notificationEmail });
+    logger.info('Test email sent', { clientId: id, to: toEmail });
+    return c.json({ success: true, to: toEmail });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'メール送信に失敗しました';
     logger.error('Test email error', err);
