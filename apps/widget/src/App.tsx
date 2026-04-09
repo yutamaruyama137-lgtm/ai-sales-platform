@@ -186,7 +186,7 @@ export default function App({ clientId, apiUrl }: AppProps): React.ReactElement 
       position: 'fixed',
       ...windowPositionStyle,
       width: '360px',
-      height: '530px',
+      height: 'min(530px, calc(100vh - 110px))',
       backgroundColor: '#fff',
       borderRadius: '16px',
       boxShadow: '0 12px 40px rgba(0,0,0,0.18)',
