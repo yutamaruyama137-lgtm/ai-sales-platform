@@ -11,17 +11,16 @@ import { logger } from './lib/logger.js';
 
 const app = new Hono();
 
-// CORSミドルウェア
-app.use(
-  '*',
-  cors({
-    origin: '*',
-    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization'],
-    exposeHeaders: ['Content-Length'],
-    maxAge: 86400,
-  })
-);
+// CORSミドルウェア（OPTIONSプリフライトを先に明示処理）
+const corsOptions = {
+  origin: '*',
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization'],
+  exposeHeaders: ['Content-Length'],
+  maxAge: 86400,
+};
+app.options('*', cors(corsOptions));
+app.use('*', cors(corsOptions));
 
 // ヘルスチェック
 app.get('/health', (c) => {
@@ -40,10 +39,12 @@ app.notFound((c) => {
   return c.json({ error: 'Not found' }, 404);
 });
 
-// エラーハンドラー
+// エラーハンドラー（CORSヘッダーを必ず付与）
 app.onError((err, c) => {
   logger.error('Unhandled error', err);
-  return c.json({ error: 'Internal server error' }, 500);
+  const res = c.json({ error: 'Internal server error' }, 500);
+  res.headers.set('Access-Control-Allow-Origin', '*');
+  return res;
 });
 
 // サーバー起動
