@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- 背景 -->
+  <rect width="64" height="64" rx="14" fill="#0075de"/>
+  <!-- チャットバブル -->
+  <rect x="10" y="12" width="44" height="30" rx="8" fill="white" fill-opacity="0.95"/>
+  <!-- ドット3つ（AIタイピング感） -->
+  <circle cx="22" cy="27" r="3.5" fill="#0075de"/>
+  <circle cx="32" cy="27" r="3.5" fill="#0075de"/>
+  <circle cx="42" cy="27" r="3.5" fill="#0075de"/>
+  <!-- 吹き出しの三角 -->
+  <path d="M14 42 L10 52 L26 42" fill="white" fill-opacity="0.95"/>
+  <!-- 右上のグリーンドット（オンライン） -->
+  <circle cx="52" cy="14" r="7" fill="#22c55e"/>
+  <path d="M49 14 L51.5 16.5 L55.5 11.5" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
