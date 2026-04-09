@@ -897,7 +897,7 @@ function EmbedTab({ client }: { client: Client }) {
 
   const snippet = `<!-- AI Sales Widget -->
 <script
-  src="${widgetBaseUrl}/widget"
+  src="${widgetBaseUrl}/widget.js"
   data-client-id="${client.id}"
   data-api-url="${apiUrl}"
 ></script>`;
