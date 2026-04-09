@@ -6,7 +6,7 @@ import { useClients } from '../hooks/useClients';
 import { LeadsTable } from '../components/LeadsTable';
 import { ConversationModal } from '../components/ConversationModal';
 
-type Tab = 'leads' | 'knowledge' | 'settings' | 'flow' | 'embed';
+type Tab = 'leads' | 'knowledge' | 'settings' | 'flow' | 'embed' | 'preview';
 
 interface Props {
   client: Client;
@@ -27,6 +27,7 @@ export function ClientDetailPage({ client, onBack }: Props): React.ReactElement 
       { id: 'knowledge' as const, label: 'ナレッジ' },
       { id: 'settings' as const, label: '設定' },
       { id: 'flow' as const, label: 'フロー設定' },
+      { id: 'preview' as const, label: '💬 プレビュー' },
       { id: 'embed' as const, label: '埋め込み' },
     ]),
     [],
@@ -69,6 +70,7 @@ export function ClientDetailPage({ client, onBack }: Props): React.ReactElement 
         {safeActiveTab === 'knowledge' && <KnowledgeTab clientId={liveClient.id} />}
         {safeActiveTab === 'settings' && <SettingsTab client={liveClient} onSaved={handleSaved} />}
         {safeActiveTab === 'flow' && <FlowTab client={liveClient} onSaved={handleSaved} />}
+        {safeActiveTab === 'preview' && <PreviewTab client={liveClient} />}
         {safeActiveTab === 'embed' && <EmbedTab client={liveClient} />}
       </div>
 
@@ -896,6 +898,271 @@ function FlowTab({ client, onSaved }: { client: Client; onSaved?: (newConfig: Cl
             {saveMsg}
           </span>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ────────────────── プレビュータブ ──────────────────
+function PreviewTab({ client }: { client: Client }) {
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  const cfg = (client.config as ClientConfig) ?? {};
+  const primaryColor = cfg.primaryColor || '#2563eb';
+  const headerTitle = cfg.headerTitle || 'AIアシスタント';
+  const welcomeMessage = cfg.welcomeMessage || 'こんにちは！\nご質問はお気軽にどうぞ。';
+  const buttonIconUrl = cfg.buttonIconUrl || null;
+
+  type Message = { role: 'user' | 'assistant'; content: string };
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [showCta, setShowCta] = useState(false);
+  const [ctaConfig, setCtaConfig] = useState<{ type: string; lineUrl?: string; message?: string } | null>(null);
+  const messageEndRef = React.useRef<HTMLDivElement>(null);
+  const inputRef = React.useRef<HTMLTextAreaElement>(null);
+
+  React.useEffect(() => {
+    messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, loading]);
+
+  const handleReset = () => {
+    setMessages([]);
+    setConversationId(null);
+    setError(null);
+    setShowCta(false);
+    setCtaConfig(null);
+    setInput('');
+  };
+
+  const handleSend = async () => {
+    const text = input.trim();
+    if (!text || loading) return;
+    setInput('');
+    setError(null);
+    setMessages((prev) => [...prev, { role: 'user', content: text }]);
+    setLoading(true);
+    try {
+      const res = await fetch(`${apiUrl}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ client_id: client.id, conversation_id: conversationId ?? undefined, message: text }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json() as { conversation_id: string; message: string; show_cta?: boolean; cta_config?: { type: string; lineUrl?: string; message?: string } };
+      setConversationId(data.conversation_id);
+      setMessages((prev) => [...prev, { role: 'assistant', content: data.message }]);
+      if (data.show_cta && data.cta_config) {
+        setShowCta(true);
+        setCtaConfig(data.cta_config);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'エラーが発生しました');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void handleSend(); }
+  };
+
+  const pw: Record<string, React.CSSProperties> = {
+    window: {
+      width: '360px', display: 'flex', flexDirection: 'column',
+      border: '1px solid rgba(0,0,0,0.12)', borderRadius: '16px',
+      overflow: 'hidden', boxShadow: '0 12px 40px rgba(0,0,0,0.13)',
+      height: '520px', background: '#fff',
+    },
+    header: {
+      background: `linear-gradient(135deg, ${primaryColor} 0%, ${primaryColor}dd 100%)`,
+      color: '#fff', padding: '14px 16px', fontWeight: 600, fontSize: '15px',
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0,
+    },
+    headerLeft: { display: 'flex', alignItems: 'center', gap: '10px' },
+    dot: { width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#4ade80', border: '2px solid rgba(255,255,255,0.6)' },
+    messageList: {
+      flex: 1, overflowY: 'auto', padding: '14px 12px',
+      display: 'flex', flexDirection: 'column', gap: '10px', backgroundColor: '#f8fafc',
+    },
+    userBubble: {
+      alignSelf: 'flex-end', backgroundColor: primaryColor, color: '#fff',
+      borderRadius: '18px 18px 4px 18px', padding: '9px 14px',
+      maxWidth: '78%', wordBreak: 'break-word', fontSize: '14px',
+    },
+    assistantBubble: {
+      alignSelf: 'flex-start', backgroundColor: '#fff', color: '#1e293b',
+      borderRadius: '18px 18px 18px 4px', padding: '9px 14px',
+      maxWidth: '78%', wordBreak: 'break-word', fontSize: '14px',
+      border: '1px solid #e2e8f0', boxShadow: '0 2px 6px rgba(0,0,0,0.07)',
+    },
+    typingWrap: {
+      alignSelf: 'flex-start', backgroundColor: '#fff', borderRadius: '18px 18px 18px 4px',
+      padding: '12px 16px', border: '1px solid #e2e8f0', display: 'flex', gap: '5px', alignItems: 'center',
+    },
+    typingDot: { width: '7px', height: '7px', borderRadius: '50%', backgroundColor: primaryColor },
+    ctaPanel: { borderTop: '1px solid #e2e8f0', padding: '12px 14px', backgroundColor: '#f0f7ff', flexShrink: 0 },
+    ctaMsg: { fontSize: '13px', color: '#1e40af', marginBottom: '8px', lineHeight: 1.5, fontWeight: 500 },
+    ctaBtn: {
+      display: 'block', width: '100%', padding: '10px 0', backgroundColor: '#06C755',
+      color: '#fff', border: 'none', borderRadius: '10px', fontSize: '14px',
+      fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'center',
+    },
+    errorBanner: {
+      backgroundColor: '#fef2f2', borderTop: '1px solid #fecaca',
+      padding: '8px 14px', flexShrink: 0, fontSize: '13px', color: '#b91c1c',
+    },
+    inputArea: {
+      borderTop: '1px solid #e2e8f0', padding: '10px 12px',
+      display: 'flex', gap: '8px', flexShrink: 0, backgroundColor: '#fff',
+    },
+    textarea: {
+      flex: 1, border: '1px solid #e2e8f0', borderRadius: '10px',
+      padding: '9px 12px', fontSize: '14px', outline: 'none',
+      resize: 'none', fontFamily: 'inherit', backgroundColor: '#f8fafc',
+    },
+    sendBtn: {
+      backgroundColor: primaryColor, color: '#fff', border: 'none',
+      borderRadius: '10px', padding: '9px 14px', cursor: 'pointer',
+      fontSize: '14px', fontWeight: 600,
+    },
+    floatBtn: {
+      width: '60px', height: '60px', borderRadius: '50%', backgroundColor: primaryColor,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.2)', border: 'none', cursor: 'default', flexShrink: 0,
+    },
+  };
+
+  return (
+    <div style={{ display: 'flex', gap: '40px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+      {/* チャットプレビュー */}
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', width: '360px' }}>
+          <span style={{ fontSize: '13px', fontWeight: 600, color: '#64748b' }}>チャットプレビュー</span>
+          <button
+            onClick={handleReset}
+            style={{ fontSize: '12px', color: '#64748b', background: 'none', border: '1px solid #e2e8f0', borderRadius: '4px', padding: '3px 10px', cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            リセット
+          </button>
+        </div>
+        <div style={pw.window}>
+          {/* ヘッダー */}
+          <div style={pw.header}>
+            <div style={pw.headerLeft}>
+              <div style={pw.dot} />
+              <span>{headerTitle}</span>
+            </div>
+            <span style={{ fontSize: '12px', opacity: 0.75, background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: '999px' }}>プレビュー</span>
+          </div>
+
+          {/* メッセージ一覧 */}
+          <div style={pw.messageList}>
+            {messages.length === 0 && (
+              <div style={{ color: '#94a3b8', fontSize: '13px', textAlign: 'center', marginTop: '24px', lineHeight: 1.6 }}>
+                {welcomeMessage}
+              </div>
+            )}
+            {messages.map((msg, idx) => (
+              <div key={idx} style={msg.role === 'user' ? pw.userBubble : pw.assistantBubble}>
+                {msg.content}
+              </div>
+            ))}
+            {loading && (
+              <div style={pw.typingWrap}>
+                <span style={{ ...pw.typingDot, animation: 'ai-typing 1.2s ease infinite 0s' }} />
+                <span style={{ ...pw.typingDot, animation: 'ai-typing 1.2s ease infinite 0.2s' }} />
+                <span style={{ ...pw.typingDot, animation: 'ai-typing 1.2s ease infinite 0.4s' }} />
+              </div>
+            )}
+            <div ref={messageEndRef} />
+          </div>
+
+          {/* CTA */}
+          {showCta && ctaConfig && (
+            <div style={pw.ctaPanel}>
+              {ctaConfig.message && <p style={pw.ctaMsg}>{ctaConfig.message}</p>}
+              {ctaConfig.type === 'line' ? (
+                <div style={{ ...pw.ctaBtn, backgroundColor: '#06C755', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', borderRadius: '10px', padding: '10px 0' }}>
+                  <span style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>LINEで詳しく聞く</span>
+                </div>
+              ) : (
+                <div style={{ fontSize: '13px', color: '#1e40af' }}>お問い合わせフームが表示されます</div>
+              )}
+            </div>
+          )}
+
+          {/* エラー */}
+          {error && <div style={pw.errorBanner}>{error}</div>}
+
+          {/* 入力 */}
+          <div style={pw.inputArea}>
+            <textarea
+              ref={inputRef}
+              style={pw.textarea}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="メッセージを入力… (Enterで送信)"
+              rows={1}
+              disabled={loading}
+            />
+            <button
+              style={{ ...pw.sendBtn, opacity: (!input.trim() || loading) ? 0.45 : 1, cursor: (!input.trim() || loading) ? 'not-allowed' : 'pointer' }}
+              onClick={() => void handleSend()}
+              disabled={!input.trim() || loading}
+            >
+              ↑
+            </button>
+          </div>
+        </div>
+
+        {/* フローティングボタンプレビュー */}
+        <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={pw.floatBtn}>
+            {buttonIconUrl ? (
+              <img src={buttonIconUrl} alt="icon" width="34" height="34" style={{ objectFit: 'contain', borderRadius: '4px' }} />
+            ) : (
+              <svg width="26" height="26" viewBox="0 0 32 32" fill="none">
+                <rect x="2" y="4" width="28" height="20" rx="6" fill="white" fillOpacity="0.95"/>
+                <circle cx="10" cy="14" r="2" fill={primaryColor}/>
+                <circle cx="16" cy="14" r="2" fill={primaryColor}/>
+                <circle cx="22" cy="14" r="2" fill={primaryColor}/>
+                <path d="M8 24 L4 29 L14 24" fill="white" fillOpacity="0.95"/>
+                <circle cx="26" cy="7" r="5" fill="#22c55e"/>
+                <path d="M23.5 7 L25.5 9 L29 5.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )}
+          </div>
+          <span style={{ fontSize: '12px', color: '#94a3b8' }}>フローティングボタン</span>
+        </div>
+      </div>
+
+      {/* 設定サマリー */}
+      <div style={{ flex: 1, minWidth: '220px' }}>
+        <div style={s.card}>
+          <h3 style={s.cardTitle}>現在の設定</h3>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <tbody>
+              {[
+                ['テーマカラー', <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><span style={{ display: 'inline-block', width: '14px', height: '14px', borderRadius: '3px', backgroundColor: primaryColor, border: '1px solid rgba(0,0,0,0.1)' }} />{primaryColor}</span>],
+                ['ヘッダータイトル', headerTitle],
+                ['ボタンアイコン', buttonIconUrl ? <a href={buttonIconUrl} target="_blank" rel="noreferrer" style={{ color: '#0075de', fontSize: '12px' }}>設定済み</a> : '未設定（デフォルト）'],
+                ['ウェルカムメッセージ', cfg.welcomeMessage ? '設定済み' : 'デフォルト'],
+                ['CTAタイプ', cfg.flowConfig?.ctaType ?? '未設定'],
+              ].map(([label, value]) => (
+                <tr key={String(label)} style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                  <td style={{ padding: '9px 4px', fontSize: '12px', color: '#94a3b8', fontWeight: 500, whiteSpace: 'nowrap', verticalAlign: 'middle' }}>{label}</td>
+                  <td style={{ padding: '9px 4px 9px 12px', fontSize: '13px', color: '#1e293b', verticalAlign: 'middle' }}>{value}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p style={{ margin: '14px 0 0', fontSize: '12px', color: '#94a3b8', lineHeight: 1.5 }}>
+            設定を変更したら「設定」タブで保存してください。プレビューに即反映されます。
+          </p>
+        </div>
       </div>
     </div>
   );
