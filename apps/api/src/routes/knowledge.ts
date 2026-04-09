@@ -212,9 +212,13 @@ knowledge.post('/import/url', async (c) => {
     let rawText = '';
 
     if (contentType.includes('text/html')) {
-      // HTML → テキスト変換（基本的なタグ除去）
       const html = await response.text();
-      rawText = html
+      // メインコンテンツ優先で抽出（<main>, <article>, <section>）
+      const mainMatch = html.match(/<main[\s\S]*?<\/main>/i)
+        || html.match(/<article[\s\S]*?<\/article>/i);
+      const targetHtml = mainMatch ? mainMatch[0] : html;
+
+      rawText = targetHtml
         .replace(/<script[\s\S]*?<\/script>/gi, '')
         .replace(/<style[\s\S]*?<\/style>/gi, '')
         .replace(/<nav[\s\S]*?<\/nav>/gi, '')
@@ -227,12 +231,24 @@ knowledge.post('/import/url', async (c) => {
         .replace(/&gt;/g, '>')
         .replace(/\s{3,}/g, '\n\n')
         .trim();
+
+      // フォールバック: <p>タグからテキストを収集
+      if (rawText.length < 100) {
+        const paragraphs = [...html.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)]
+          .map(m => m[1].replace(/<[^>]+>/g, '').trim())
+          .filter(t => t.length > 20)
+          .join('\n\n');
+        if (paragraphs.length > rawText.length) {
+          rawText = paragraphs;
+        }
+      }
     } else {
       rawText = await response.text();
     }
 
-    if (!rawText.trim() || rawText.length < 50) {
-      return c.json<ApiError>({ error: 'Could not extract meaningful content from URL' }, 400);
+    if (!rawText.trim() || rawText.length < 30) {
+      logger.warn('Could not extract content from URL', { url, length: rawText.length });
+      return c.json<ApiError>({ error: 'Could not extract meaningful content from URL. The page may be JavaScript-rendered or block automated access.' }, 400);
     }
 
     // チャンク分割 & ベクトル化

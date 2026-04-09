@@ -29,7 +29,9 @@ export function useAuth(): UseAuthReturn {
     const initAuth = async () => {
       const { data: { user }, error } = await supabase.auth.getUser();
       if (error || !user) {
-        await supabase.auth.signOut();
+        // ローカルセッションのみクリア（サーバーAPIを叩かない）
+        // signOut()はリフレッシュトークンが無効な場合に400エラーを出すため
+        await supabase.auth.signOut({ scope: 'local' });
         setSession(null);
       } else {
         const { data: { session: currentSession } } = await supabase.auth.getSession();

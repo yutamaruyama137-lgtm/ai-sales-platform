@@ -337,6 +337,26 @@ function TestEmailButton({ clientId, notificationEmail }: { clientId: string; no
   );
 }
 
+// ────────────────── 共通フィールドコンポーネント ──────────────────
+// NOTE: コンポーネント外で定義することで、親の再レンダリング時に別コンポーネントと
+// 判断されDOMが作り直されてフォーカスが失われるのを防ぐ
+function Field({ label, value, onChange, placeholder, multiline = false }: {
+  label: string; value: string; onChange: (v: string) => void;
+  placeholder?: string; multiline?: boolean;
+}) {
+  return (
+    <label style={s.fieldLabel}>
+      {label}
+      {multiline ? (
+        <textarea style={{ ...s.input, height: '100px', resize: 'vertical' }}
+          value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
+      ) : (
+        <input style={s.input} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
+      )}
+    </label>
+  );
+}
+
 // ────────────────── 設定タブ ──────────────────
 function SettingsTab({ client }: { client: Client }) {
   const { updateClient } = useClients();
@@ -375,21 +395,6 @@ function SettingsTab({ client }: { client: Client }) {
     setSaving(false);
     setTimeout(() => setSaveMsg(''), 3000);
   };
-
-  const Field = ({ label, value, onChange, placeholder, multiline = false }: {
-    label: string; value: string; onChange: (v: string) => void;
-    placeholder?: string; multiline?: boolean;
-  }) => (
-    <label style={s.fieldLabel}>
-      {label}
-      {multiline ? (
-        <textarea style={{ ...s.input, height: '100px', resize: 'vertical' }}
-          value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
-      ) : (
-        <input style={s.input} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
-      )}
-    </label>
-  );
 
   return (
     <div style={{ maxWidth: '640px' }}>
