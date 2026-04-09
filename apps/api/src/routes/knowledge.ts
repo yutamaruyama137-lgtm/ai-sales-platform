@@ -171,6 +171,8 @@ knowledge.post('/upload', async (c) => {
       }
     }
 
+    // チャンク処理後にGCを促す
+    if (typeof global.gc === 'function') global.gc();
     logger.info('File upload complete', { fileName, inserted: insertedIds.length });
     return c.json({
       success: true,
@@ -279,6 +281,7 @@ knowledge.post('/import/url', async (c) => {
       }
     }
 
+    if (typeof global.gc === 'function') global.gc();
     logger.info('URL import complete', { url, inserted: insertedIds.length, client_id });
     return c.json({ success: true, url, chunks_created: insertedIds.length }, 201);
   } catch (err) {

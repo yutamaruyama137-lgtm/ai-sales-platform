@@ -91,7 +91,10 @@ export async function extractTextFromPdf(buffer: Buffer): Promise<string> {
     const pdfParse = (mod.default || mod) as (buf: Buffer) => Promise<{ text: string }>;
     /* eslint-enable @typescript-eslint/no-explicit-any */
     const data = await pdfParse(buffer);
-    return data.text;
+    const text = data.text;
+    // PDF処理後にGCを促してメモリを解放
+    if (typeof global.gc === 'function') global.gc();
+    return text;
   } catch {
     logger.warn('pdf-parse not available, treating as plain text');
     return buffer.toString('utf-8');
