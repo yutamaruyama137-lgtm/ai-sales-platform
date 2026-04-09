@@ -16,6 +16,11 @@ interface Props {
 export function ClientDetailPage({ client, onBack }: Props): React.ReactElement {
   const [activeTab, setActiveTab] = useState<Tab>('leads');
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
+  // 保存後に最新configを反映するためのローカルコピー
+  const [liveClient, setLiveClient] = useState(client);
+  const handleSaved = (newConfig: ClientConfig) => {
+    setLiveClient((prev) => ({ ...prev, config: newConfig }));
+  };
   const tabs = useMemo(
     () => ([
       { id: 'leads' as const, label: 'リード一覧' },
@@ -61,10 +66,10 @@ export function ClientDetailPage({ client, onBack }: Props): React.ReactElement 
             onViewConversation={(id) => setSelectedLeadId(id)}
           />
         )}
-        {safeActiveTab === 'knowledge' && <KnowledgeTab clientId={client.id} />}
-        {safeActiveTab === 'settings' && <SettingsTab client={client} />}
-        {safeActiveTab === 'flow' && <FlowTab client={client} />}
-        {safeActiveTab === 'embed' && <EmbedTab client={client} />}
+        {safeActiveTab === 'knowledge' && <KnowledgeTab clientId={liveClient.id} />}
+        {safeActiveTab === 'settings' && <SettingsTab client={liveClient} onSaved={handleSaved} />}
+        {safeActiveTab === 'flow' && <FlowTab client={liveClient} onSaved={handleSaved} />}
+        {safeActiveTab === 'embed' && <EmbedTab client={liveClient} />}
       </div>
 
       {selectedLeadId && (
@@ -358,7 +363,7 @@ function Field({ label, value, onChange, placeholder, multiline = false }: {
 }
 
 // ────────────────── 設定タブ ──────────────────
-function SettingsTab({ client }: { client: Client }) {
+function SettingsTab({ client, onSaved }: { client: Client; onSaved?: (newConfig: ClientConfig) => void }) {
   const { updateClient } = useClients();
   const cfg = (client.config as ClientConfig) ?? {};
 
@@ -389,9 +394,12 @@ function SettingsTab({ client }: { client: Client }) {
       webhookUrl: webhookUrl || undefined,
       lineChannelAccessToken: lineChannelAccessToken || undefined,
       lineChannelSecret: lineChannelSecret || undefined,
+      // flowConfigは設定タブで変更しないため既存値を保持
+      flowConfig: cfg.flowConfig,
     };
     const ok = await updateClient(client.id, name, domain, newConfig);
     setSaveMsg(ok ? '保存しました' : '保存に失敗しました');
+    if (ok) onSaved?.(newConfig);
     setSaving(false);
     setTimeout(() => setSaveMsg(''), 3000);
   };
@@ -711,7 +719,7 @@ CTAの直前に「無料で現地調査・詳細お見積りをご案内でき�
   },
 ];
 
-function FlowTab({ client }: { client: Client }) {
+function FlowTab({ client, onSaved }: { client: Client; onSaved?: (newConfig: ClientConfig) => void }) {
   const { updateClient } = useClients();
   const cfg = (client.config as ClientConfig) ?? {};
   const flow = cfg.flowConfig ?? { ctaType: 'none' as const };
@@ -752,6 +760,7 @@ function FlowTab({ client }: { client: Client }) {
     };
     const ok = await updateClient(client.id, client.name, client.domain ?? '', newConfig);
     setSaveMsg(ok ? '保存しました' : '保存に失敗しました');
+    if (ok) onSaved?.(newConfig);
     setSaving(false);
     setTimeout(() => setSaveMsg(''), 3000);
     if (ok) setAppliedTemplate(null);
