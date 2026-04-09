@@ -25,6 +25,7 @@ export interface ClientConfig {
   // ウィジェット外観設定
   primaryColor?: string;    // デフォルト: #2563eb
   buttonText?: string;      // デフォルト: 💬
+  buttonIconUrl?: string;   // フローティングボタンのカスタムアイコンURL（SVG/PNG等）
   headerTitle?: string;     // デフォルト: AIアシスタント
   position?: 'bottom-right' | 'bottom-left';
   // フローボット設定

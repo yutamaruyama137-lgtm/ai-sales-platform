@@ -374,6 +374,7 @@ function SettingsTab({ client, onSaved }: { client: Client; onSaved?: (newConfig
   const [primaryColor, setPrimaryColor] = useState(cfg.primaryColor ?? '#0075de');
   const [headerTitle, setHeaderTitle] = useState(cfg.headerTitle ?? '');
   const [buttonText, setButtonText] = useState(cfg.buttonText ?? '💬');
+  const [buttonIconUrl, setButtonIconUrl] = useState(cfg.buttonIconUrl ?? '');
   const [notificationEmail, setNotificationEmail] = useState(cfg.notificationEmail ?? '');
   const [webhookUrl, setWebhookUrl] = useState(cfg.webhookUrl ?? '');
   const [lineChannelAccessToken, setLineChannelAccessToken] = useState(cfg.lineChannelAccessToken ?? '');
@@ -390,6 +391,7 @@ function SettingsTab({ client, onSaved }: { client: Client; onSaved?: (newConfig
       primaryColor: primaryColor || undefined,
       headerTitle: headerTitle || undefined,
       buttonText: buttonText || undefined,
+      buttonIconUrl: buttonIconUrl || undefined,
       notificationEmail: notificationEmail || undefined,
       webhookUrl: webhookUrl || undefined,
       lineChannelAccessToken: lineChannelAccessToken || undefined,
@@ -432,7 +434,17 @@ function SettingsTab({ client, onSaved }: { client: Client; onSaved?: (newConfig
           </div>
         </label>
         <Field label="ヘッダータイトル" value={headerTitle} onChange={setHeaderTitle} placeholder="AIアシスタント" />
-        <Field label="フローティングボタンのテキスト" value={buttonText} onChange={setButtonText} placeholder="💬" />
+        <Field label="フローティングボタンのアイコンURL（SVG/PNG）" value={buttonIconUrl} onChange={setButtonIconUrl}
+          placeholder="https://example.com/logo.svg" />
+        {buttonIconUrl && (
+          <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <img src={buttonIconUrl} alt="プレビュー" width="40" height="40"
+              style={{ objectFit: 'contain', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '4px' }}
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+            <span style={{ fontSize: '12px', color: '#64748b' }}>プレビュー</span>
+          </div>
+        )}
+        <Field label="フローティングボタンのテキスト（アイコン未設定時）" value={buttonText} onChange={setButtonText} placeholder="💬" />
       </div>
 
       <div style={{ ...s.card, marginTop: '16px' }}>

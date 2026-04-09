@@ -94,6 +94,7 @@ export default function App({ clientId, apiUrl }: AppProps): React.ReactElement 
   const primaryColor = config?.primaryColor || DEFAULT_COLOR;
   const headerTitle = config?.headerTitle || 'AIアシスタント';
   const position = config?.position || 'bottom-right';
+  const buttonIconUrl = config?.buttonIconUrl || null;
 
   useEffect(() => { injectStyles(); }, []);
 
@@ -418,6 +419,8 @@ export default function App({ clientId, apiUrl }: AppProps): React.ReactElement 
               <line x1="18" y1="6" x2="6" y2="18"/>
               <line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
+          ) : buttonIconUrl ? (
+            <img src={buttonIconUrl} alt="chat" width="34" height="34" style={{ objectFit: 'contain', borderRadius: '4px' }} />
           ) : (
             <ChatSVG color={primaryColor} />
           )}
