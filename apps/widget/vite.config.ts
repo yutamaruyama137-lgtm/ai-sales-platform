@@ -11,7 +11,7 @@ export default defineConfig(({ command }) => {
         lib: {
           entry: resolve(__dirname, 'src/main.tsx'),
           name: 'AISalesWidget',
-          fileName: () => 'widget',
+          fileName: () => 'widget.js',
           formats: ['iife'],
         },
         rollupOptions: {
